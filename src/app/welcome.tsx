@@ -1,7 +1,15 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function Welcome() {
+
+  const router = useRouter()
+
+  function handleAccess() {
+    router.push('/login')
+  }
+
   return (
     <View style={styles.container}>
 
@@ -17,7 +25,7 @@ export default function Welcome() {
         <Text style={styles.title}>Conecte-se a universidade</Text>
         <Text style={styles.text}>Faça o Login para começar</Text>
 
-        <TouchableOpacity style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={handleAccess}>
           <Text style={styles.buttonText}>Acessar</Text>
         </TouchableOpacity>
       </View>
