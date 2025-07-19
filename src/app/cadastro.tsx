@@ -6,7 +6,7 @@ export default function Cadastro() {
 
     const router = useRouter()
 
-    function handleAccess() {
+    function handleAccessLogin() {
         router.push('/login')
     }
 
@@ -34,10 +34,10 @@ export default function Cadastro() {
                 />
 
                 <TouchableOpacity style={styles.button}>
-                    <Text style={styles.buttonText}>Cadastrar-se</Text>
+                    <Text style={styles.buttonText} onPress={handleAccessLogin}>Cadastrar-se</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.buttonRegister}>
-                    <Text style={styles.buttonTextRegister} onPress={handleAccess}>Já possui uma conta ? Entre!</Text>
+                    <Text style={styles.buttonTextRegister} onPress={handleAccessLogin}>Já possui uma conta ? Entre!</Text>
                 </TouchableOpacity>
             </View>
         </View>
