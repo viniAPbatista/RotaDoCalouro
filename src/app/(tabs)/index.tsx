@@ -1,14 +1,28 @@
-import { StyleSheet } from 'react-native';
-
-import EditScreenInfo from '@/src/components/EditScreenInfo';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, View } from '@/src/components/Themed';
+import { router } from 'expo-router';
+
+const ListaCaronas = () => {
+  return(
+    <View style={styles.containerCarona}>
+      <Text>CARONAS</Text>
+    </View>
+  )
+}
 
 export default function TabOneScreen() {
+
+  function handleAcessCriarCarona() {
+    router.push('/criarCarona')
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Hellow World</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
+      <ListaCaronas/>
+      <ListaCaronas/>
+      <TouchableOpacity style={styles.ButtonAdicionarCarona} onPress={handleAcessCriarCarona}>
+        <Text style={styles.TextAdicionarCarona}>+</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -17,15 +31,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
+    backgroundColor: '#C2DCF2',
+    paddingTop: 32,
+  },
+  containerCarona: {
+    backgroundColor: 'white',
+    width: '93%',
+    height: '20%',
+    borderRadius: 15,
+    margin: 6
+  },
+  ButtonAdicionarCarona: {
+    position: 'absolute',
+    bottom: 130,
+    right: 30,
+    backgroundColor: '#272874ff',
+    borderRadius: 30,
+    width: '15%',
+    aspectRatio: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
+  TextAdicionarCarona: {
+    color: 'white',
+    fontSize: 35,
+  }
 });
