@@ -4,10 +4,10 @@ import PostListItem from "@/src/components/postListItem";
 export default function Feed() {
   return (
     <View>
-      <FlatList
+      {/* <FlatList
         data={}
         renderItem={({ item }) => <PostListItem post={item} />}
-      />
+      /> */}
     </View>
   )
 }
