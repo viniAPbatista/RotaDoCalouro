@@ -15,7 +15,7 @@ export default function Welcome() {
 
       <View style={styles.containerLogo}>
         <Image
-          source={require('../../assets/images/logo_rota_do_calouro-removebg-preview.png')}
+          source={require('../../../assets/images/logo_rota_do_calouro-removebg-preview.png')}
           style={{width: '100%'}}
           resizeMode="contain"
         />
