@@ -3,7 +3,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Post } from "../types";
 
-// type posts, 1:16 youtube
+type PostListItemProps ={
+    post: Post
+}
 
 export default function PostListItem() {
     return (
