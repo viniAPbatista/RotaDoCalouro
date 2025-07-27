@@ -16,6 +16,7 @@ export default function Feed() {
         data={}
         renderItem={({ item }) => <PostListItem post={item} />}
       /> */}
+      <PostListItem />
       <TouchableOpacity style={styles.ButtonAdicionarPost} onPress={handleAcessCriarPost}>
         <Text style={styles.TextAdicionarPost}>+</Text>
       </TouchableOpacity>

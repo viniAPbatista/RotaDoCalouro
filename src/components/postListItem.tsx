@@ -1,13 +1,21 @@
-import { View, Image, Text, StyleSheet } from "react-native"
+import { View, Image, Text, StyleSheet, TouchableOpacity } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Post } from "../types";
+import { useRouter } from "expo-router";
 
-type PostListItemProps ={
+type PostListItemProps = {
     post: Post
 }
 
 export default function PostListItem() {
+
+    const router = useRouter();
+
+    function handleAcessComments() {
+        router.push('/comments')
+    }
+
     return (
         <View style={styles.postContainer}>
             <View style={styles.headerPost}>
@@ -31,9 +39,11 @@ export default function PostListItem() {
 
             <View style={styles.interactionsPost}>
                 <MaterialCommunityIcons name="heart-outline" size={19} color='black' />
-                <Text>15</Text>
-                <MaterialCommunityIcons name="comment-outline" size={19} color='black' />
-                <Text>10</Text>
+                <Text style={styles.interactionsNumber}>15</Text>
+                <TouchableOpacity style={styles.commentButton} onPress={handleAcessComments}>
+                    <MaterialCommunityIcons name="comment-outline" size={19} color='black' />
+                    <Text style={styles.interactionsNumber}>10</Text>
+                </TouchableOpacity>
             </View>
         </View>
     )
@@ -88,5 +98,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         paddingHorizontal: 10,
         paddingVertical: 5,
+    },
+    interactionsNumber: {
+        marginHorizontal: 3,
+        marginRight: 20
+    },
+    commentButton: {
+        flexDirection: 'row'
     }
 });
