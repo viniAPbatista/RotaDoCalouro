@@ -1,9 +1,13 @@
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView } from "react-native";
 import { useState } from "react";
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from "expo-router";
 
 export default function CriarPost() {
 
     const [textPost, setTextPost] = useState('')
+
+    const router = useRouter();
 
     return (
         <SafeAreaView style={styles.container}>
@@ -13,6 +17,9 @@ export default function CriarPost() {
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
             >
                 <View style={styles.containerHeader}>
+                    <TouchableOpacity style={styles.backButton} onPress={router.back}>
+                        <Ionicons name="arrow-back" size={30} color="white" />
+                    </TouchableOpacity>
                     <Text style={styles.message}>Criar Post</Text>
                 </View>
 
@@ -43,8 +50,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#C2DCF2',
     },
     containerHeader: {
-        marginTop: '5%',
-        marginBottom: '4%',
+        marginTop: '14%',
+        marginBottom: '8%',
         paddingStart: '5%'
     },
     message: {
@@ -86,5 +93,8 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 18,
         fontWeight: 'bold'
-    }
+    },
+    backButton: {
+        marginBottom: 25
+    },
 })
