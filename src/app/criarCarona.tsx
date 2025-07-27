@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from "expo-router";
 
 export default function CriarCarona() {
 
@@ -8,6 +10,8 @@ export default function CriarCarona() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [time, setTime] = useState(new Date());
     const [showTimePicker, setShowTimePicker] = useState(false);
+
+    const router = useRouter();
 
     const handleDateChange = (_event: any, selectedDate?: Date) => {
         const currentDate = selectedDate || date;
@@ -24,6 +28,9 @@ export default function CriarCarona() {
     return (
         <ScrollView style={styles.container}>
             <View style={styles.containerTitle}>
+                <TouchableOpacity style={styles.backButton} onPress={router.back}>
+                    <Ionicons name="arrow-back" size={30} color="white" />
+                </TouchableOpacity>
                 <Text style={styles.title}>Criar carona!</Text>
             </View>
 
@@ -152,5 +159,8 @@ const styles = StyleSheet.create({
         margin: 10,
         alignSelf: 'center',
         fontSize: 18
-    }
+    },
+    backButton: {
+        marginBottom: 25
+    },
 })
