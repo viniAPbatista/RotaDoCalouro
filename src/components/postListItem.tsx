@@ -8,43 +8,46 @@ type PostListItemProps = {
     post: Post
 }
 
-export default function PostListItem() {
+export default function PostListItem({ post }: PostListItemProps) {
 
     const router = useRouter();
 
     function handleAcessComments() {
-        router.push('/comments')
+        router.push({ pathname: '/comments', params: {postId: post.id} })
     }
 
     return (
         <View style={styles.postContainer}>
             <View style={styles.headerPost}>
                 <Image
-                    source={require('../../assets/images/logo_rota_do_calouro-removebg-preview.png')}
+                    source={post.user.image ? {uri: post.user.image} : require('../../assets/images/logo_rota_do_calouro-removebg-preview.png')}
                     style={styles.userImage}
                 />
-                <Text style={styles.userName}>NAME USER</Text>
+                <Text style={styles.userName}>{post.user.name}</Text>
                 <Text style={styles.date}>
-                    {formatDistanceToNowStrict(new Date("2025-07-21"), { addSuffix: true })}
+                    {formatDistanceToNowStrict(new Date(post.created_at), { addSuffix: true })}
                 </Text>
             </View>
 
-            {/* condicional se o texto será exibido, possivel post só imagem */}
-            <Text style={styles.postText}>TEXT POST</Text>
-            {/* condicional se a imagem será exibida, possivel post só texto */}
-            <Image
-                source={require('../../assets/images/logo_rota_do_calouro-removebg-preview.png')}
-                style={styles.postImage}
-            />
+            {post.content &&
+                <Text style={styles.postText}>{post.content}</Text>
+            }
+
+            {post.image_url && (
+                <Image
+                    source={{ uri: post.image_url }}
+                    style={styles.postImage}
+                />
+            )}
 
             <View style={styles.interactionsPost}>
                 <TouchableOpacity style={styles.commentButton}>
                     <MaterialCommunityIcons name="heart-outline" size={19} color='black' />
-                    <Text style={styles.interactionsNumber}>15</Text>
+                    <Text style={styles.interactionsNumber}>{post.likes}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.commentButton} onPress={handleAcessComments}>
                     <MaterialCommunityIcons name="comment-outline" size={19} color='black' />
-                    <Text style={styles.interactionsNumber}>10</Text>
+                    <Text style={styles.interactionsNumber}>{post.nr_of_comments}</Text>
                 </TouchableOpacity>
             </View>
         </View>
