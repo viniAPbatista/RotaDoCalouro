@@ -3,8 +3,8 @@ export type Post = {
     created_at: string
     likes: number
     nr_of_comments: number
-    image: string | null
-    description: string | null
+    image_url: string | null
+    content: string | null
     user: User
 }
 

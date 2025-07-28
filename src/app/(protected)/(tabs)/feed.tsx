@@ -1,10 +1,30 @@
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, ScrollView } from "react-native";
 import PostListItem from "@/src/components/postListItem";
 import { useRouter } from "expo-router";
+import { supabase } from "@/src/lib/supabase";
+import { useState, useEffect } from "react";
+import { Post } from "@/src/types";
 
 export default function Feed() {
 
+  const [posts, setPosts] = useState<Post[]>([])
+
   const router = useRouter()
+
+  useEffect(() => {
+    fetchPosts()
+  }, [])
+
+  const fetchPosts = async () => {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*, user:users!posts_user_id_fkey(*)')
+      .order('created_at', { ascending: false })
+    console.log('error', error)
+    console.log('data', JSON.stringify(data, null, 2))
+
+    if (data) setPosts(data)
+  }
 
   function handleAcessCriarPost() {
     router.push('/criarPost')
@@ -12,17 +32,10 @@ export default function Feed() {
 
   return (
     <View style={styles.container}>
-      {/* <FlatList
-        data={}
-        renderItem={({ item }) => <PostListItem post={item} />}
-      /> */}
-      <ScrollView style={styles.scrollViewPosts}>
-        <PostListItem />
-        <PostListItem />
-        <PostListItem />
-        <PostListItem />
-        <PostListItem />
-      </ScrollView>
+        <FlatList
+          data={ posts }
+          renderItem={({ item }) => <PostListItem post={item} />}
+        />
       <TouchableOpacity style={styles.ButtonAdicionarPost} onPress={handleAcessCriarPost}>
         <Text style={styles.TextAdicionarPost}>+</Text>
       </TouchableOpacity>
