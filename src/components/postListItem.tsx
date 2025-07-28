@@ -38,8 +38,10 @@ export default function PostListItem() {
             />
 
             <View style={styles.interactionsPost}>
-                <MaterialCommunityIcons name="heart-outline" size={19} color='black' />
-                <Text style={styles.interactionsNumber}>15</Text>
+                <TouchableOpacity style={styles.commentButton}>
+                    <MaterialCommunityIcons name="heart-outline" size={19} color='black' />
+                    <Text style={styles.interactionsNumber}>15</Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.commentButton} onPress={handleAcessComments}>
                     <MaterialCommunityIcons name="comment-outline" size={19} color='black' />
                     <Text style={styles.interactionsNumber}>10</Text>

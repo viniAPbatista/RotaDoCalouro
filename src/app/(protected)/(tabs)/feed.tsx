@@ -1,14 +1,14 @@
-import { View, StyleSheet, FlatList, TouchableOpacity, Text } from "react-native";
+import { View, StyleSheet, FlatList, TouchableOpacity, Text, ScrollView } from "react-native";
 import PostListItem from "@/src/components/postListItem";
 import { useRouter } from "expo-router";
 
 export default function Feed() {
 
-   const router = useRouter()
+  const router = useRouter()
 
   function handleAcessCriarPost() {
-      router.push('/criarPost')
-    }
+    router.push('/criarPost')
+  }
 
   return (
     <View style={styles.container}>
@@ -16,7 +16,13 @@ export default function Feed() {
         data={}
         renderItem={({ item }) => <PostListItem post={item} />}
       /> */}
-      <PostListItem />
+      <ScrollView style={styles.scrollViewPosts}>
+        <PostListItem />
+        <PostListItem />
+        <PostListItem />
+        <PostListItem />
+        <PostListItem />
+      </ScrollView>
       <TouchableOpacity style={styles.ButtonAdicionarPost} onPress={handleAcessCriarPost}>
         <Text style={styles.TextAdicionarPost}>+</Text>
       </TouchableOpacity>
@@ -46,4 +52,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 35,
   },
+  scrollViewPosts: {
+    marginBottom: '27%'
+  }
 });
