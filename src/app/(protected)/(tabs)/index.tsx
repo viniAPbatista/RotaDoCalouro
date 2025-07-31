@@ -2,8 +2,12 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, View } from '@/src/components/Themed';
 import { router } from 'expo-router';
 
+import { useEffect } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-expo';
+import { supabase } from '../../../lib/supabase';
+
 const ListaCaronas = () => {
-  return(
+  return (
     <View style={styles.containerCarona}>
       <Text>CARONAS</Text>
     </View>
@@ -11,6 +15,41 @@ const ListaCaronas = () => {
 }
 
 export default function TabOneScreen() {
+  const { userId } = useAuth();
+  const { user } = useUser();
+
+  useEffect(() => {
+    const syncUserToSupabase = async () => {
+      if (!userId || !user) return;
+
+      const { data: existingUser, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erro ao verificar usuário existente:', error);
+        return;
+      }
+      if (!existingUser) {
+        const { error: insertError } = await supabase.from('users').insert({
+          id: userId,
+          name: user.fullName || user.username || 'Usuário',
+          image: user.imageUrl || null,
+        });
+
+        if (insertError) {
+          console.error('Erro ao inserir usuário:', insertError);
+        } else {
+          console.log('Usuário inserido com sucesso!');
+        }
+      }
+
+    };
+
+    syncUserToSupabase();
+  }, [userId, user]);
 
   function handleAcessCriarCarona() {
     router.push('/criarCarona')
@@ -18,8 +57,8 @@ export default function TabOneScreen() {
 
   return (
     <View style={styles.container}>
-      <ListaCaronas/>
-      <ListaCaronas/>
+      <ListaCaronas />
+      <ListaCaronas />
       <TouchableOpacity style={styles.ButtonAdicionarCarona} onPress={handleAcessCriarCarona}>
         <Text style={styles.TextAdicionarCarona}>+</Text>
       </TouchableOpacity>
