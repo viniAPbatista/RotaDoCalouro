@@ -2,8 +2,9 @@ import { View, StyleSheet, FlatList, TouchableOpacity, Text, ScrollView } from "
 import PostListItem from "@/src/components/postListItem";
 import { useRouter } from "expo-router";
 import { supabase } from "@/src/lib/supabase";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Post } from "@/src/types";
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function Feed() {
 
@@ -11,9 +12,11 @@ export default function Feed() {
 
   const router = useRouter()
 
-  useEffect(() => {
-    fetchPosts()
-  }, [])
+  useFocusEffect(
+    useCallback(() => {
+      fetchPosts();
+    }, [])
+  );
 
   const fetchPosts = async () => {
     const { data, error } = await supabase
@@ -32,10 +35,10 @@ export default function Feed() {
 
   return (
     <View style={styles.container}>
-        <FlatList
-          data={ posts }
-          renderItem={({ item }) => <PostListItem post={item} />}
-        />
+      <FlatList
+        data={posts}
+        renderItem={({ item }) => <PostListItem post={item} />}
+      />
       <TouchableOpacity style={styles.ButtonAdicionarPost} onPress={handleAcessCriarPost}>
         <Text style={styles.TextAdicionarPost}>+</Text>
       </TouchableOpacity>

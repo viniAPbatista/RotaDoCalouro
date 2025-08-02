@@ -2,12 +2,15 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingVi
 import { useState } from "react";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from "expo-router";
+import { useAuth } from '@clerk/clerk-expo';
+import { supabase } from '../../lib/supabase';
 
 export default function CriarPost() {
 
     const [textPost, setTextPost] = useState('')
 
     const router = useRouter();
+    const { userId } = useAuth();
 
     return (
         <SafeAreaView style={styles.container}>
@@ -34,9 +37,37 @@ export default function CriarPost() {
                             multiline
                             textAlignVertical="top" // para alinhar o texto no topo
                         />
-                        <TouchableOpacity style={styles.button}>
+                        <TouchableOpacity
+                            style={styles.button}
+                            onPress={async () => {
+                                if (!textPost.trim()) {
+                                    alert("Digite algo antes de publicar.");
+                                    return;
+                                }
+
+                                try {
+                                    const { error } = await supabase.from('posts').insert({
+                                        user_id: userId,
+                                        content: textPost,
+                                    });
+
+                                    if (error) {
+                                        console.error("Erro ao publicar:", error);
+                                        alert("Erro ao publicar o post.");
+                                    } else {
+                                        alert("Post publicado com sucesso!");
+                                        setTextPost('');
+                                        router.back();
+                                    }
+                                } catch (e) {
+                                    console.error("Erro inesperado:", e);
+                                    alert("Erro inesperado ao publicar.");
+                                }
+                            }}
+                        >
                             <Text style={styles.buttonText}>Publicar</Text>
                         </TouchableOpacity>
+
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
