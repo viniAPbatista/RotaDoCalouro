@@ -1,14 +1,62 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView } from "react-native";
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import CommentListItem from "@/src/components/commentListItem";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth, useUser } from "@clerk/clerk-expo";
+import { supabase } from "../../lib/supabase";
+import { Comment } from "../../types";
 
 export default function Comentarios() {
 
     const [comment, setComment] = useState('')
-
+    const [comments, setComments] = useState<Comment[]>([]);
     const router = useRouter();
+    const { user } = useUser();
+    const { postId } = useLocalSearchParams();
+
+    const handleSendComment = async () => {
+        if (!comment.trim()) return;
+
+        if (!user) {
+            alert("Usuário não autenticado");
+            return;
+        }
+
+        const { data, error } = await supabase.from("comments").insert([
+            {
+                content: comment,
+                user_id: user.id,
+                post_id: postId,
+            },
+        ]);
+
+        if (error) {
+            console.error("Erro ao enviar comentário:", error);
+            alert("Erro ao enviar comentário");
+        } else {
+            setComment("");
+            fetchComments();
+        }
+    };
+
+    const fetchComments = async () => {
+        const { data, error } = await supabase
+            .from("comments")
+            .select("*, user:users(*)")
+            .eq("post_id", postId)
+            .order("created_at", { ascending: false });
+
+        if (!error) {
+            setComments(data);
+        } else {
+            console.error("Erro ao buscar comentários:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (postId) fetchComments();
+    }, [postId]);
 
     return (
         <KeyboardAvoidingView
@@ -25,15 +73,9 @@ export default function Comentarios() {
             <View style={styles.commentArea}>
                 <View style={styles.containerComments}>
                     <ScrollView contentContainerStyle={styles.scroll}>
-                        <CommentListItem />
-                        <CommentListItem />
-                        <CommentListItem />
-                        <CommentListItem />
-                        <CommentListItem />
-                        <CommentListItem />
-                        <CommentListItem />
-                        <CommentListItem />
-                        <CommentListItem />
+                        {comments.map((item) => (
+                            <CommentListItem key={item.id} comment={item} />
+                        ))}
                     </ScrollView>
                 </View>
 
@@ -45,7 +87,7 @@ export default function Comentarios() {
                         onChangeText={(text) => setComment(text)}
                         multiline
                     />
-                    <TouchableOpacity style={styles.commentButton}>
+                    <TouchableOpacity style={styles.commentButton} onPress={handleSendComment}>
                         <Text>
                             <Ionicons name="send" size={24} color="#a7a7a7ff" />
                         </Text>

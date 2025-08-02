@@ -7,23 +7,27 @@ type CommentListItemProps = {
     comment: Comment
 }
 
-export default function CommentListItem() {
+export default function CommentListItem({ comment }: CommentListItemProps) {
     return (
         <View style={styles.container}>
             <View style={styles.headerComment}>
                 <Image
-                    source={require('../../assets/images/logo_rota_do_calouro-removebg-preview.png')}
+                    source={
+                        comment.user.image
+                            ? { uri: comment.user.image }
+                            : require('../../assets/images/logo_rota_do_calouro-removebg-preview.png')
+                    }
                     style={styles.userImage}
                 />
-                <Text style={styles.userName}>User Name</Text>
+                <Text style={styles.userName}>{comment.user.name}</Text>
                 <Text style={styles.dateComment}>
                     <Text style={styles.dateComment}>
-                        {formatDistanceToNowStrict(new Date('2025-07-22'), { addSuffix: true })}
+                        {formatDistanceToNowStrict(new Date(comment.created_at), { addSuffix: true })}
                     </Text>
                 </Text>
             </View>
 
-            <Text>COMENTARIO</Text>
+            <Text>{comment.content}</Text>
         </View>
     )
 }

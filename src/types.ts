@@ -13,7 +13,7 @@ export type Comment = {
     post_id: string
     user_id: string
     parent_id: string | null
-    comment: string 
+    content: string 
     created_at: string
     user: User
 }
