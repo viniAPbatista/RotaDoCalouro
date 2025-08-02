@@ -9,6 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 export default function Feed() {
 
   const [posts, setPosts] = useState<Post[]>([])
+  const [refreshing, setRefreshing] = useState(false);
 
   const router = useRouter()
 
@@ -17,6 +18,12 @@ export default function Feed() {
       fetchPosts();
     }, [])
   );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchPosts();
+    setRefreshing(false);
+  };
 
   const fetchPosts = async () => {
     const { data, error } = await supabase
@@ -38,6 +45,8 @@ export default function Feed() {
       <FlatList
         data={posts}
         renderItem={({ item }) => <PostListItem post={item} />}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
       />
       <TouchableOpacity style={styles.ButtonAdicionarPost} onPress={handleAcessCriarPost}>
         <Text style={styles.TextAdicionarPost}>+</Text>
