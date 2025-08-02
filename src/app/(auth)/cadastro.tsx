@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Text, TextInput, TouchableOpacity, View, StyleSheet } from 'react-native'
 import { useSignUp } from '@clerk/clerk-expo'
 import { Link, useRouter } from 'expo-router'
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp()
@@ -67,17 +68,26 @@ export default function SignUpScreen() {
 
   if (pendingVerification) {
     return (
-      <>
-        <Text>Verify your email</Text>
-        <TextInput
-          value={code}
-          placeholder="Enter your verification code"
-          onChangeText={(code) => setCode(code)}
-        />
-        <TouchableOpacity onPress={onVerifyPress}>
-          <Text>Verify</Text>
-        </TouchableOpacity>
-      </>
+      <View style={styles.container}>
+        <View style={styles.containerHeader}>
+          <TouchableOpacity style={styles.backButton} onPress={router.back}>
+            <Ionicons name="arrow-back" size={30} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.message}>Verifique seu email</Text>
+        </View>
+
+        <View style={styles.containerForm}>
+          <TextInput
+            value={code}
+            placeholder="Insira seu codigo de verificação!"
+            onChangeText={(code) => setCode(code)}
+            style={styles.inputEmailCode}
+          />
+          <TouchableOpacity onPress={onVerifyPress} style={styles.button}>
+            <Text style={styles.buttonText}>Confirmar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     )
   }
 
@@ -178,5 +188,15 @@ const styles = StyleSheet.create({
   },
   buttonRegisterText: {
     color: '#a1a1a1'
-  }
+  },
+  inputEmailCode: {
+    borderBottomWidth: 1,
+    height: 40,
+    marginBottom: 12,
+    fontSize: 16,
+    marginTop: 35
+  },
+  backButton: {
+    marginBottom: 25
+  },
 })
