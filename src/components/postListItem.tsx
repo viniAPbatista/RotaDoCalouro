@@ -3,6 +3,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Post } from "../types";
 import { useRouter } from "expo-router";
+import { useState } from "react";
+import { supabase } from "@/src/lib/supabase";
+import { useUser } from "@clerk/clerk-expo";
 
 type PostListItemProps = {
     post: Post
@@ -10,17 +13,48 @@ type PostListItemProps = {
 
 export default function PostListItem({ post }: PostListItemProps) {
 
+    const [liked, setLiked] = useState(post.liked_by_me);
+    const [likeCount, setLikeCount] = useState(post.likes || 0);
+
     const router = useRouter();
+    const { user } = useUser();
+
+    const toggleLike = async () => {
+        if (!user) return;
+
+        if (liked) {
+            const { error } = await supabase
+                .from("likes")
+                .delete()
+                .eq("post_id", post.id)
+                .eq("user_id", user.id);
+
+            if (!error) {
+                setLiked(false);
+                setLikeCount((prev) => prev - 1);
+            }
+        } else {
+            const { error } = await supabase.from("likes").insert({
+                post_id: post.id,
+                user_id: user.id,
+            });
+
+            if (!error) {
+                setLiked(true);
+                setLikeCount((prev) => prev + 1);
+            }
+        }
+    };
 
     function handleAcessComments() {
-        router.push({ pathname: '/comments', params: {postId: post.id} })
+        router.push({ pathname: '/comments', params: { postId: post.id } })
     }
 
     return (
         <View style={styles.postContainer}>
             <View style={styles.headerPost}>
                 <Image
-                    source={post.user.image ? {uri: post.user.image} : require('../../assets/images/logo_rota_do_calouro-removebg-preview.png')}
+                    source={post.user.image ? { uri: post.user.image } : require('../../assets/images/logo_rota_do_calouro-removebg-preview.png')}
                     style={styles.userImage}
                 />
                 <Text style={styles.userName}>{post.user.name}</Text>
@@ -41,9 +75,13 @@ export default function PostListItem({ post }: PostListItemProps) {
             )}
 
             <View style={styles.interactionsPost}>
-                <TouchableOpacity style={styles.commentButton}>
-                    <MaterialCommunityIcons name="heart-outline" size={19} color='black' />
-                    <Text style={styles.interactionsNumber}>{post.likes}</Text>
+                <TouchableOpacity style={styles.commentButton} onPress={toggleLike}>
+                    <MaterialCommunityIcons
+                        name={liked ? "heart" : "heart-outline"}
+                        size={19}
+                        color={liked ? "red" : "black"}
+                    />
+                    <Text style={styles.interactionsNumber}>{likeCount}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.commentButton} onPress={handleAcessComments}>
                     <MaterialCommunityIcons name="comment-outline" size={19} color='black' />

@@ -5,6 +5,7 @@ import { supabase } from "@/src/lib/supabase";
 import { useState, useEffect, useCallback } from "react";
 import { Post } from "@/src/types";
 import { useFocusEffect } from '@react-navigation/native';
+import { useUser } from "@clerk/clerk-expo";
 
 export default function Feed() {
 
@@ -12,6 +13,7 @@ export default function Feed() {
   const [refreshing, setRefreshing] = useState(false);
 
   const router = useRouter()
+  const { user } = useUser()
 
   useFocusEffect(
     useCallback(() => {
@@ -36,27 +38,34 @@ export default function Feed() {
       return;
     }
 
-    // Adiciona contagem de comentários para cada post
-    const postsWithCommentCounts = await Promise.all(
+    const postsWithExtras = await Promise.all(
       postsData.map(async (post) => {
-        const { count, error: countError } = await supabase
-          .from("comments")
-          .select("*", { count: "exact", head: true })
-          .eq("post_id", post.id);
-
-        if (countError) {
-          console.error("Erro ao contar comentários:", countError);
-          return { ...post, nr_of_comments: 0 }; // fallback
-        }
+        const [commentsCount, likesCount, likedByMe] = await Promise.all([
+          supabase
+            .from("comments")
+            .select("*", { count: "exact", head: true })
+            .eq("post_id", post.id),
+          supabase
+            .from("likes")
+            .select("*", { count: "exact", head: true })
+            .eq("post_id", post.id),
+          supabase
+            .from("likes")
+            .select("user_id")
+            .eq("post_id", post.id)
+            .eq("user_id", user?.id),
+        ]);
 
         return {
           ...post,
-          nr_of_comments: count,
+          nr_of_comments: commentsCount.count || 0,
+          likes: likesCount.count || 0,
+          liked_by_me: !!likedByMe.data && likedByMe.data.length > 0,
         };
       })
     );
 
-    setPosts(postsWithCommentCounts);
+    setPosts(postsWithExtras);
   };
 
   function handleAcessCriarPost() {

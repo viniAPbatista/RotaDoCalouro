@@ -6,6 +6,7 @@ export type Post = {
     image_url: string | null
     content: string | null
     user: User
+    liked_by_me: boolean
 }
 
 export type Comment = {
