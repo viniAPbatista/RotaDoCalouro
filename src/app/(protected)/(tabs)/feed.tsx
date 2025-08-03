@@ -26,15 +26,38 @@ export default function Feed() {
   };
 
   const fetchPosts = async () => {
-    const { data, error } = await supabase
+    const { data: postsData, error } = await supabase
       .from('posts')
       .select('*, user:users!posts_user_id_fkey(*)')
-      .order('created_at', { ascending: false })
-    console.log('error', error)
-    console.log('data', JSON.stringify(data, null, 2))
+      .order('created_at', { ascending: false });
 
-    if (data) setPosts(data)
-  }
+    if (error) {
+      console.error("Erro ao buscar posts:", error);
+      return;
+    }
+
+    // Adiciona contagem de comentários para cada post
+    const postsWithCommentCounts = await Promise.all(
+      postsData.map(async (post) => {
+        const { count, error: countError } = await supabase
+          .from("comments")
+          .select("*", { count: "exact", head: true })
+          .eq("post_id", post.id);
+
+        if (countError) {
+          console.error("Erro ao contar comentários:", countError);
+          return { ...post, nr_of_comments: 0 }; // fallback
+        }
+
+        return {
+          ...post,
+          nr_of_comments: count,
+        };
+      })
+    );
+
+    setPosts(postsWithCommentCounts);
+  };
 
   function handleAcessCriarPost() {
     router.push('/criarPost')
