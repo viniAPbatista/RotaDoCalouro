@@ -35,7 +35,7 @@ export default function CriarPost() {
                             value={textPost}
                             onChangeText={setTextPost}
                             multiline
-                            textAlignVertical="top" // para alinhar o texto no topo
+                            textAlignVertical="top"
                         />
                         <TouchableOpacity
                             style={styles.button}
@@ -44,7 +44,6 @@ export default function CriarPost() {
                                     alert("Digite algo antes de publicar.");
                                     return;
                                 }
-
                                 try {
                                     const { error } = await supabase.from('posts').insert({
                                         user_id: userId,
@@ -67,7 +66,6 @@ export default function CriarPost() {
                         >
                             <Text style={styles.buttonText}>Publicar</Text>
                         </TouchableOpacity>
-
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
