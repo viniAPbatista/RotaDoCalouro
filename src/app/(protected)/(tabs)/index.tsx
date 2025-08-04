@@ -1,9 +1,10 @@
 import { StyleSheet, TouchableOpacity, Text, View, FlatList } from 'react-native';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { supabase } from '../../../lib/supabase';
 import { Ride } from '@/src/types';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function TabOneScreen() {
   const { userId } = useAuth();
@@ -14,23 +15,25 @@ export default function TabOneScreen() {
     router.push('/criarCarona')
   }
 
-  useEffect(() => {
-    const fetchRides = async () => {
-      const { data, error } = await supabase
-        .from('rides')
-        .select('id, origin, destination, ride_date, ride_time, seats, price')
-        .order('ride_date', { ascending: true });
+  useFocusEffect(
+    useCallback(() => {
+      const fetchRides = async () => {
+        const { data, error } = await supabase
+          .from('rides')
+          .select('id, origin, destination, ride_date, ride_time, seats, price')
+          .order('ride_date', { ascending: true });
 
-      if (error) {
-        console.error('Erro ao buscar caronas: ', error);
-        return;
-      }
+        if (error) {
+          console.error('Erro ao buscar caronas: ', error);
+          return;
+        }
 
-      setRides(data || []);
-    };
+        setRides(data || []);
+      };
 
-    fetchRides();
-  }, []);
+      fetchRides();
+    }, [])
+  );
 
   useEffect(() => {
     const syncUserToSupabase = async () => {
@@ -97,15 +100,14 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#C2DCF2',
-    paddingHorizontal: 16, 
-    paddingBottom: 100, 
-    paddingTop: 20,
-    flex: 1
+    paddingHorizontal: 16,
+    paddingBottom: 100,
+    paddingTop: 20
   },
   containerCarona: {
     backgroundColor: 'white',
-    alignSelf: 'center',      
-    width: '100%',                
+    alignSelf: 'center',
+    width: '100%',
     borderRadius: 12,
     marginVertical: 8,
     padding: 14,
