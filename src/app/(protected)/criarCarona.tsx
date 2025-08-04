@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView } from "react-native";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from "expo-router";
@@ -57,89 +57,95 @@ export default function CriarCarona() {
     };
 
     return (
-        <ScrollView style={styles.container}>
-            <View style={styles.containerTitle}>
-                <TouchableOpacity style={styles.backButton} onPress={router.back}>
-                    <Ionicons name="arrow-back" size={30} color="white" />
-                </TouchableOpacity>
-                <Text style={styles.title}>Criar carona!</Text>
-            </View>
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+        >
+            <ScrollView style={styles.container}>
+                <View style={styles.containerTitle}>
+                    <TouchableOpacity style={styles.backButton} onPress={router.back}>
+                        <Ionicons name="arrow-back" size={30} color="white" />
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Criar carona!</Text>
+                </View>
 
-            <View style={styles.containerForm}>
-                <Text style={styles.textInput}>Ponto de Partida</Text>
-                <TextInput
-                    placeholder="Digite o endereço"
-                    style={styles.input}
-                    value={origin}
-                    onChangeText={setOrigin}
-                />
-                <Text style={styles.textInput}>Destino</Text>
-                <TextInput
-                    placeholder="Digite o endereço"
-                    style={styles.input}
-                    value={destination}
-                    onChangeText={setDestination}
-                />
-                <Text style={styles.textInput}>Data</Text>
-                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dataHora}>
-                    <Text style={styles.textDataHora}>{date.toLocaleDateString('pt-BR')}</Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                    <DateTimePicker
-                        value={date}
-                        mode="date"
-                        display="default"
-                        onChange={handleDateChange}
+                <View style={styles.containerForm}>
+                    <Text style={styles.textInput}>Ponto de Partida</Text>
+                    <TextInput
+                        placeholder="Digite o endereço"
+                        style={styles.input}
+                        value={origin}
+                        onChangeText={setOrigin}
                     />
-                )}
-                <Text style={styles.textInput}>Hora</Text>
-                <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.dataHora}>
-                    <Text style={styles.textDataHora}>{time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Text>
-                </TouchableOpacity>
-                {showTimePicker && (
-                    <DateTimePicker
-                        value={time}
-                        mode="time"
-                        display="default"
-                        onChange={handleTimeChange}
-                        is24Hour={true}
+                    <Text style={styles.textInput}>Destino</Text>
+                    <TextInput
+                        placeholder="Digite o endereço"
+                        style={styles.input}
+                        value={destination}
+                        onChangeText={setDestination}
                     />
-                )}
-                <Text style={styles.textInput}>Vagas</Text>
-                <TextInput
-                    placeholder="Vagas disponiveis"
-                    style={styles.input}
-                    value={seats}
-                    onChangeText={setSeats}
-                />
-                <Text style={styles.textInput}>Valor total</Text>
-                <TextInput
-                    placeholder="Valor do transporte"
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={price}
-                    onChangeText={setPrice}
-                />
-                <Text style={styles.textInput}>Modelo do Carro</Text>
-                <TextInput
-                    placeholder="Digite o modelo do carro"
-                    style={styles.input}
-                    value={carModel}
-                    onChangeText={setCarModel}
-                />
-                <Text style={styles.textInput}>Placa do carro</Text>
-                <TextInput
-                    placeholder="Digite a placa do carro."
-                    style={styles.input}
-                    value={carPlate}
-                    onChangeText={setCarPlate}
-                />
+                    <Text style={styles.textInput}>Data</Text>
+                    <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dataHora}>
+                        <Text style={styles.textDataHora}>{date.toLocaleDateString('pt-BR')}</Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                        <DateTimePicker
+                            value={date}
+                            mode="date"
+                            display="default"
+                            onChange={handleDateChange}
+                        />
+                    )}
+                    <Text style={styles.textInput}>Hora</Text>
+                    <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.dataHora}>
+                        <Text style={styles.textDataHora}>{time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Text>
+                    </TouchableOpacity>
+                    {showTimePicker && (
+                        <DateTimePicker
+                            value={time}
+                            mode="time"
+                            display="default"
+                            onChange={handleTimeChange}
+                            is24Hour={true}
+                        />
+                    )}
+                    <Text style={styles.textInput}>Vagas</Text>
+                    <TextInput
+                        placeholder="Vagas disponiveis"
+                        style={styles.input}
+                        value={seats}
+                        onChangeText={setSeats}
+                    />
+                    <Text style={styles.textInput}>Valor total</Text>
+                    <TextInput
+                        placeholder="Valor do transporte"
+                        style={styles.input}
+                        keyboardType="numeric"
+                        value={price}
+                        onChangeText={setPrice}
+                    />
+                    <Text style={styles.textInput}>Modelo do Carro</Text>
+                    <TextInput
+                        placeholder="Digite o modelo do carro"
+                        style={styles.input}
+                        value={carModel}
+                        onChangeText={setCarModel}
+                    />
+                    <Text style={styles.textInput}>Placa do carro</Text>
+                    <TextInput
+                        placeholder="Digite a placa do carro."
+                        style={styles.input}
+                        value={carPlate}
+                        onChangeText={setCarPlate}
+                    />
 
-                <TouchableOpacity style={styles.button} onPress={handleCreateRide}>
-                    <Text style={styles.buttonText}>Criar Carona</Text>
-                </TouchableOpacity>
-            </View>
-        </ScrollView>
+                    <TouchableOpacity style={styles.button} onPress={handleCreateRide}>
+                        <Text style={styles.buttonText}>Criar Carona</Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </KeyboardAvoidingView >
     )
 }
 
