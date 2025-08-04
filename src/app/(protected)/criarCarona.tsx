@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from "expo-router";
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '@clerk/clerk-expo';
 
 export default function CriarCarona() {
 
@@ -10,8 +12,37 @@ export default function CriarCarona() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [time, setTime] = useState(new Date());
     const [showTimePicker, setShowTimePicker] = useState(false);
-
+    const [price, setPrice] = useState('');
+    const { userId } = useAuth();
     const router = useRouter();
+    const [origin, setOrigin] = useState('');
+    const [destination, setDestination] = useState('');
+    const [seats, setSeats] = useState('');
+    const [carModel, setCarModel] = useState('');
+    const [carPlate, setCarPlate] = useState('');
+
+    async function handleCreateRide() {
+        if (!userId) return;
+
+        const { error } = await supabase.from('rides').insert({
+            user_id: userId,
+            origin: origin,
+            destination: destination,
+            ride_date: date.toISOString().split('T')[0],
+            ride_time: time.toTimeString().split(' ')[0],
+            seats: Number(seats),
+            car_model: carModel,
+            car_plate: carPlate,
+            price: Number(price),
+        });
+
+        if (error) {
+            console.error('Erro ao criar carona:', error);
+            return;
+        }
+
+        router.back();
+    }
 
     const handleDateChange = (_event: any, selectedDate?: Date) => {
         const currentDate = selectedDate || date;
@@ -39,11 +70,15 @@ export default function CriarCarona() {
                 <TextInput
                     placeholder="Digite o endereço"
                     style={styles.input}
+                    value={origin}
+                    onChangeText={setOrigin}
                 />
                 <Text style={styles.textInput}>Destino</Text>
                 <TextInput
                     placeholder="Digite o endereço"
                     style={styles.input}
+                    value={destination}
+                    onChangeText={setDestination}
                 />
                 <Text style={styles.textInput}>Data</Text>
                 <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dataHora}>
@@ -74,20 +109,34 @@ export default function CriarCarona() {
                 <TextInput
                     placeholder="Vagas disponiveis"
                     style={styles.input}
+                    value={seats}
+                    onChangeText={setSeats}
+                />
+                <Text style={styles.textInput}>Valor total</Text>
+                <TextInput
+                    placeholder="Valor do transporte"
+                    style={styles.input}
+                    keyboardType="numeric"
+                    value={price}
+                    onChangeText={setPrice}
                 />
                 <Text style={styles.textInput}>Modelo do Carro</Text>
                 <TextInput
                     placeholder="Digite o modelo do carro"
                     style={styles.input}
+                    value={carModel}
+                    onChangeText={setCarModel}
                 />
                 <Text style={styles.textInput}>Placa do carro</Text>
                 <TextInput
                     placeholder="Digite a placa do carro."
                     style={styles.input}
+                    value={carPlate}
+                    onChangeText={setCarPlate}
                 />
 
-                <TouchableOpacity style={styles.button}>
-                    <Text style={styles.buttonText}>Criar</Text>
+                <TouchableOpacity style={styles.button} onPress={handleCreateRide}>
+                    <Text style={styles.buttonText}>Criar Carona</Text>
                 </TouchableOpacity>
             </View>
         </ScrollView>
