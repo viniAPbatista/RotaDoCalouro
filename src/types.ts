@@ -24,3 +24,13 @@ export type User ={
     name: string
     image: string | null
 }
+
+export type Ride = {
+  id: string;
+  origin: string;
+  destination: string;
+  ride_date: string;
+  ride_time: string;
+  seats: number;
+  price: number;
+};
