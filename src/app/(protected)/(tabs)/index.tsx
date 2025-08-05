@@ -10,6 +10,7 @@ export default function TabOneScreen() {
   const { userId } = useAuth();
   const { user } = useUser();
   const [rides, setRides] = useState<Ride[]>([]);
+  const [reservadas, setReservadas] = useState<string[]>([]);
 
   function handleAcessCriarCarona() {
     router.push('/criarCarona')
@@ -20,7 +21,7 @@ export default function TabOneScreen() {
       const fetchRides = async () => {
         const { data, error } = await supabase
           .from('rides')
-          .select('id, origin, destination, ride_date, ride_time, seats, price')
+          .select('id, origin, destination, ride_date, ride_time, seats, price, user_id')
           .order('ride_date', { ascending: true });
 
         if (error) {
@@ -29,10 +30,25 @@ export default function TabOneScreen() {
         }
 
         setRides(data || []);
+
+        if (userId) {
+          const { data: reservas, error: reservasError } = await supabase
+            .from('ride_reservations')
+            .select('ride_id')
+            .eq('user_id', userId);
+
+          if (reservasError) {
+            console.error('Erro ao buscar reservas:', reservasError);
+            return;
+          }
+
+          const idsReservados = reservas.map((r) => r.ride_id);
+          setReservadas(idsReservados);
+        }
       };
 
       fetchRides();
-    }, [])
+    }, [userId])
   );
 
   useEffect(() => {
@@ -68,7 +84,47 @@ export default function TabOneScreen() {
   }, [userId, user]);
 
   const renderItem = ({ item }: { item: Ride }) => {
-    const pricePerPassenger = item.seats > 1 ? (item.price / item.seats) : 0;
+    const pricePerPassenger = item.seats > 1 ? (item.price / item.seats) : item.price;
+
+    const handleReserveRide = async () => {
+      if (!userId) return;
+
+      if (item.seats <= 0) {
+        alert('Não há mais vagas disponíveis.');
+        return;
+      }
+
+      const { error: insertError } = await supabase.from('ride_reservations').insert({
+        ride_id: item.id,
+        user_id: userId,
+      });
+
+      if (insertError) {
+        if (insertError.code === '23505') {
+          alert('Você já reservou essa carona.');
+        } else {
+          console.error('Erro ao reservar:', insertError);
+        }
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('rides')
+        .update({ seats: item.seats - 1 })
+        .eq('id', item.id);
+
+      if (updateError) {
+        console.error('Erro ao atualizar vagas:', updateError);
+        return;
+      }
+
+      alert('Carona reservada com sucesso!');
+      setReservadas((prev) => [...prev, item.id]);
+
+      setRides((prev) =>
+        prev.map((ride) => (ride.id === item.id ? { ...ride, seats: ride.seats - 1 } : ride))
+      );
+    };
 
     return (
       <View style={styles.containerCarona}>
@@ -78,6 +134,22 @@ export default function TabOneScreen() {
         <Text style={styles.details}>Vagas: {item.seats}</Text>
         <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
         <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
+
+        {item.user_id !== userId && item.seats > 0 && (
+          reservadas.includes(item.id) ? (
+            <TouchableOpacity style={styles.buttonReservado} disabled={true}>
+              <Text style={styles.textReservado}>Reservado</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.buttonReservar} onPress={handleReserveRide}>
+              <Text style={styles.textReservar}>Reservar</Text>
+            </TouchableOpacity>
+          )
+        )}
+
+        {item.user_id !== userId && item.seats === 0 && (
+          <Text style={{ color: 'red', marginTop: 4 }}>Vagas esgotadas</Text>
+        )}
       </View>
     );
   };
@@ -141,5 +213,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     marginBottom: 2,
+  },
+  buttonReservar: {
+    marginTop: 10,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  textReservar: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  buttonReservado: {
+    marginTop: 10,
+    backgroundColor: 'gray',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  textReservado: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
