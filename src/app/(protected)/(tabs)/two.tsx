@@ -75,6 +75,20 @@ export default function Perfil() {
     setPosts(postsWithCounts);
   };
 
+  const deletePost = async (postId: string) => {
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId);
+
+    if (error) {
+      console.error('Erro ao excluir o post:', error.message);
+      return;
+    }
+
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+  };
+
   return (
     <View style={styles.container}>
       {user && (
@@ -87,7 +101,24 @@ export default function Perfil() {
           <FlatList
             data={posts}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <PostListItem post={item} />}
+            renderItem={({ item }) => (
+              <View style={{ marginBottom: 14, borderRadius: 10 }}>
+                <PostListItem post={item} />
+                <TouchableOpacity
+                  onPress={() => deletePost(item.id)}
+                  style={{
+                    backgroundColor: '#ff5252',
+                    padding: 8,
+                    borderRadius: 6,
+                    alignSelf: 'flex-end',
+                    marginRight: 10,
+                    marginBottom: 10
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Excluir</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             style={{ width: '100%' }}
             ListFooterComponent={() => (
               <TouchableOpacity onPress={() => signOut()} style={styles.logoutButton}>
