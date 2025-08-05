@@ -20,6 +20,7 @@ export default function CriarCarona() {
     const [seats, setSeats] = useState('');
     const [carModel, setCarModel] = useState('');
     const [carPlate, setCarPlate] = useState('');
+    const seatsNumber = Number(seats);
 
     async function handleCreateRide() {
         if (!userId) return;
@@ -34,6 +35,7 @@ export default function CriarCarona() {
             car_model: carModel,
             car_plate: carPlate,
             price: Number(price),
+            original_seats: seatsNumber,
         });
 
         if (error) {
