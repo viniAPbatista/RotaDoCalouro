@@ -21,7 +21,7 @@ export default function TabOneScreen() {
       const fetchRides = async () => {
         const { data, error } = await supabase
           .from('rides')
-          .select('id, origin, destination, ride_date, ride_time, seats, price, user_id')
+          .select('id, origin, destination, ride_date, ride_time, seats, original_seats, price, user_id')
           .order('ride_date', { ascending: true });
 
         if (error) {
@@ -84,7 +84,9 @@ export default function TabOneScreen() {
   }, [userId, user]);
 
   const renderItem = ({ item }: { item: Ride }) => {
-    const pricePerPassenger = item.seats > 1 ? (item.price / item.seats) : item.price;
+    const pricePerPassenger = item.original_seats > 0
+      ? (item.price / item.original_seats)
+      : item.price;
 
     const handleReserveRide = async () => {
       if (!userId) return;
