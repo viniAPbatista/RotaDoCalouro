@@ -35,4 +35,7 @@ export type Ride = {
     price: number;
     user_id: string
     original_seats: number;
+    users?: {
+        name: string;
+    };
 };
