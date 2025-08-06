@@ -1,9 +1,9 @@
-import { StyleSheet, TouchableOpacity, FlatList, Image } from 'react-native';
+import { StyleSheet, TouchableOpacity, FlatList, Image, ScrollView } from 'react-native';
 import { Text, View } from '@/src/components/Themed';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { Post } from '@/src/types';
+import { Post, Ride } from '@/src/types';
 import PostListItem from '../../../components/postListItem';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -12,11 +12,13 @@ export default function Perfil() {
   const { user } = useUser();
 
   const [posts, setPosts] = useState<Post[]>([]);
+  const [rides, setRides] = useState<Ride[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       if (user?.id) {
         fetchUserPosts(user.id);
+        fetchUserRides(user.id);
       }
     }, [user])
   );
@@ -75,6 +77,20 @@ export default function Perfil() {
     setPosts(postsWithCounts);
   };
 
+  const fetchUserRides = async (userId: string) => {
+    const { data: ridesData, error } = await supabase
+      .from('rides')
+      .select('*')
+      .eq('user_id', userId)
+      .order('ride_date', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar caronas:', error.message);
+      return;
+    }
+    if (ridesData) setRides(ridesData);
+  };
+
   const deletePost = async (postId: string) => {
     const { error } = await supabase
       .from('posts')
@@ -97,35 +113,49 @@ export default function Perfil() {
           <Text style={styles.name}>{user.username}</Text>
           <Text style={styles.email}>{user.primaryEmailAddress?.emailAddress}</Text>
 
-          <Text style={styles.sectionTitle}>Seus Posts</Text>
-          <FlatList
-            data={posts}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={{ marginBottom: 14, borderRadius: 10 }}>
-                <PostListItem post={item} />
+          <TouchableOpacity onPress={() => signOut()} style={styles.logoutButton}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+
+          <ScrollView style={{ width: '100%', marginBottom: '22%' }} contentContainerStyle={{ paddingBottom: 20 }}>
+            <Text style={styles.sectionTitle}>Seus Posts</Text>
+            {posts.map((post) => (
+              <View key={post.id} style={{ marginBottom: 14, borderRadius: 10 }}>
+                <PostListItem post={post} />
                 <TouchableOpacity
-                  onPress={() => deletePost(item.id)}
+                  onPress={() => deletePost(post.id)}
                   style={{
                     backgroundColor: '#ff5252',
                     padding: 8,
                     borderRadius: 6,
                     alignSelf: 'flex-end',
                     marginRight: 10,
-                    marginBottom: 10
+                    marginBottom: 10,
                   }}
                 >
                   <Text style={{ color: '#fff', fontWeight: 'bold' }}>Excluir</Text>
                 </TouchableOpacity>
               </View>
-            )}
-            style={{ width: '100%' }}
-            ListFooterComponent={() => (
-              <TouchableOpacity onPress={() => signOut()} style={styles.logoutButton}>
-                <Text style={styles.logoutText}>Logout</Text>
-              </TouchableOpacity>
-            )}
-          />
+            ))}
+
+            <Text style={styles.sectionTitle}>Suas Caronas</Text>
+            {rides.map((item) => {
+              const pricePerPassenger = item.original_seats && item.original_seats > 0
+                ? (item.price / item.original_seats)
+                : item.price;
+
+              return (
+                <View key={item.id} style={styles.containerCarona}>
+                  <Text style={styles.title}>{item.origin} ➜ {item.destination}</Text>
+                  <Text style={styles.details}>Data: {new Date(item.ride_date).toLocaleDateString('pt-BR')}</Text>
+                  <Text style={styles.details}>Hora: {item.ride_time.slice(0, 5)}</Text>
+                  <Text style={styles.details}>Vagas: {item.seats}</Text>
+                  <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
+                  <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
+                </View>
+              );
+            })}
+          </ScrollView>
         </>
       )}
     </View>
@@ -161,14 +191,46 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   logoutButton: {
-    marginTop: 20,
+    position: 'absolute',
+    top: 50,
+    right: 16,
     padding: 10,
     backgroundColor: '#ff5252',
     borderRadius: 8,
+    zIndex: 10,
   },
   logoutText: {
     color: '#fff',
     fontWeight: 'bold',
     alignSelf: 'center',
+  },
+  rideItem: {
+    backgroundColor: '#eef6fc',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  containerCarona: {
+    backgroundColor: 'white',
+    alignSelf: 'center',
+    width: '100%',
+    borderRadius: 12,
+    marginVertical: 8,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  details: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 2,
   },
 });
