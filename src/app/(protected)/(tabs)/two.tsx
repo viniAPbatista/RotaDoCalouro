@@ -105,6 +105,20 @@ export default function Perfil() {
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
+  const deleteRide = async (rideId: string) => {
+    const { error } = await supabase
+      .from('rides')
+      .delete()
+      .eq('id', rideId);
+
+    if (error) {
+      console.error('Erro ao excluir a carona:', error.message);
+      return;
+    }
+
+    setRides(prevRides => prevRides.filter(ride => ride.id !== rideId));
+  };
+
   return (
     <View style={styles.container}>
       {user && (
@@ -152,6 +166,18 @@ export default function Perfil() {
                   <Text style={styles.details}>Vagas: {item.seats}</Text>
                   <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
                   <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
+                  <TouchableOpacity
+                    onPress={() => deleteRide(item.id)}
+                    style={{
+                      backgroundColor: '#ff5252',
+                      padding: 8,
+                      borderRadius: 6,
+                      alignSelf: 'flex-end',
+                      marginTop: 10,
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Excluir</Text>
+                  </TouchableOpacity>
                 </View>
               );
             })}
