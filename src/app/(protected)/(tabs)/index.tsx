@@ -21,7 +21,20 @@ export default function TabOneScreen() {
       const fetchRides = async () => {
         const { data, error } = await supabase
           .from('rides')
-          .select('id, origin, destination, ride_date, ride_time, seats, original_seats, price, user_id')
+          .select(`
+            id,
+            origin,
+            destination,
+            ride_date,
+            ride_time,
+            seats,
+            original_seats,
+            price,
+            user_id,
+            users (
+              name
+            )
+          `)
           .order('ride_date', { ascending: true });
 
         if (error) {
@@ -131,6 +144,9 @@ export default function TabOneScreen() {
     return (
       <View style={styles.containerCarona}>
         <Text style={styles.title}>{item.origin} ➜ {item.destination}</Text>
+        <Text style={styles.details}>
+          Motorista: {item.users?.name || 'Desconhecido'}
+        </Text>
         <Text style={styles.details}>Data: {new Date(item.ride_date).toLocaleDateString('pt-BR')}</Text>
         <Text style={styles.details}>Hora: {item.ride_time.slice(0, 5)}</Text>
         <Text style={styles.details}>Vagas: {item.seats}</Text>
