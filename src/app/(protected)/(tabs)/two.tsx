@@ -13,12 +13,14 @@ export default function Perfil() {
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [rides, setRides] = useState<Ride[]>([]);
+  const [reservedRides, setReservedRides] = useState<Ride[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       if (user?.id) {
         fetchUserPosts(user.id);
         fetchUserRides(user.id);
+        fetchReservedRides(user.id);
       }
     }, [user])
   );
@@ -89,6 +91,37 @@ export default function Perfil() {
       return;
     }
     if (ridesData) setRides(ridesData);
+  };
+
+  const fetchReservedRides = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('ride_reservations')
+      .select(`
+      ride_id,
+      rides:ride_id (
+        id,
+        origin,
+        destination,
+        ride_date,
+        ride_time,
+        seats,
+        price,
+        original_seats
+      )
+    `)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Erro ao buscar caronas reservadas:', error.message);
+      return;
+    }
+
+    const ridesOnly = data
+      .map((reservation) => reservation.rides)
+      .filter((ride) => ride !== null)
+      .flat() as Ride[];
+
+    setReservedRides(ridesOnly);
   };
 
   const deletePost = async (postId: string) => {
@@ -181,6 +214,26 @@ export default function Perfil() {
                 </View>
               );
             })}
+            <Text style={styles.sectionTitle}>Caronas Reservadas</Text>
+            {reservedRides.length === 0 ? (
+              <Text style={{ fontStyle: 'italic', color: '#666' }}>Nenhuma carona reservada.</Text>
+            ) : (
+              reservedRides.map((item) => {
+                const pricePerPassenger = item.original_seats && item.original_seats > 0
+                  ? (item.price / item.original_seats)
+                  : item.price;
+
+                return (
+                  <View key={item.id} style={styles.containerCarona}>
+                    <Text style={styles.title}>{item.origin} ➜ {item.destination}</Text>
+                    <Text style={styles.details}>Data: {new Date(item.ride_date).toLocaleDateString('pt-BR')}</Text>
+                    <Text style={styles.details}>Hora: {item.ride_time.slice(0, 5)}</Text>
+                    <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
+                    <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
+                  </View>
+                );
+              })
+            )}
           </ScrollView>
         </>
       )}
