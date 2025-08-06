@@ -152,6 +152,34 @@ export default function Perfil() {
     setRides(prevRides => prevRides.filter(ride => ride.id !== rideId));
   };
 
+  const cancelRideReservation = async (rideId: string) => {
+    if (!user?.id) return;
+
+    const { error: deleteError } = await supabase
+      .from('ride_reservations')
+      .delete()
+      .eq('ride_id', rideId)
+      .eq('user_id', user.id);
+
+    if (deleteError) {
+      console.error('Erro ao cancelar reserva:', deleteError.message);
+      return;
+    }
+
+    const { error: rpcError } = await supabase.rpc('increment_seats', {
+      ride_id_input: rideId,
+    });
+
+    if (rpcError) {
+      console.error('Erro ao atualizar vagas da carona:', rpcError.message);
+      return;
+    }
+
+    setReservedRides(prev =>
+      prev.filter(ride => ride.id !== rideId)
+    );
+  };
+
   return (
     <View style={styles.container}>
       {user && (
@@ -218,7 +246,7 @@ export default function Perfil() {
             {reservedRides.length === 0 ? (
               <Text style={{ fontStyle: 'italic', color: '#666' }}>Nenhuma carona reservada.</Text>
             ) : (
-              reservedRides.map((item) => {
+              reservedRides.map((item: Ride) => {
                 const pricePerPassenger = item.original_seats && item.original_seats > 0
                   ? (item.price / item.original_seats)
                   : item.price;
@@ -230,6 +258,19 @@ export default function Perfil() {
                     <Text style={styles.details}>Hora: {item.ride_time.slice(0, 5)}</Text>
                     <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
                     <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
+
+                    <TouchableOpacity
+                      onPress={() => cancelRideReservation(item.id)}
+                      style={{
+                        backgroundColor: '#ff5252',
+                        padding: 8,
+                        borderRadius: 6,
+                        alignSelf: 'flex-end',
+                        marginTop: 10,
+                      }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cancelar reserva</Text>
+                    </TouchableOpacity>
                   </View>
                 );
               })
