@@ -107,6 +107,8 @@ export default function Perfil() {
         seats,
         price,
         original_seats,
+        car_model,
+        car_plate,
         user:users!rides_user_id_fkey (id, name)
       )
     `)
@@ -256,6 +258,8 @@ export default function Perfil() {
                   <View key={item.id} style={styles.containerCarona}>
                     <Text style={styles.title}>{item.origin} ➜ {item.destination}</Text>
                     <Text style={styles.details}>Motorista: {item.user?.name ?? 'Desconhecido'}</Text>
+                    <Text style={styles.details}>Modelo do carro: {item.car_model || 'Não informado'}</Text>
+                    <Text style={styles.details}>Placa: {item.car_plate || 'Não informada'}</Text>
                     <Text style={styles.details}>Data: {new Date(item.ride_date).toLocaleDateString('pt-BR')}</Text>
                     <Text style={styles.details}>Hora: {item.ride_time.slice(0, 5)}</Text>
                     <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
