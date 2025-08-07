@@ -82,7 +82,16 @@ export default function Perfil() {
   const fetchUserRides = async (userId: string) => {
     const { data: ridesData, error } = await supabase
       .from('rides')
-      .select('*')
+      .select(`
+      *,
+      passengers:ride_reservations (
+        user:users (
+          id,
+          name,
+          image
+        )
+      )
+    `)
       .eq('user_id', userId)
       .order('ride_date', { ascending: false });
 
@@ -90,7 +99,8 @@ export default function Perfil() {
       console.error('Erro ao buscar caronas:', error.message);
       return;
     }
-    if (ridesData) setRides(ridesData);
+
+    setRides(ridesData);
   };
 
   const fetchReservedRides = async (userId: string) => {
@@ -230,6 +240,24 @@ export default function Perfil() {
                   <Text style={styles.details}>Vagas: {item.seats}</Text>
                   <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
                   <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
+
+                  {item.passengers && item.passengers.length > 0 && (
+                    <>
+                      <Text style={[styles.details, { marginTop: 8, fontWeight: 'bold' }]}>Passageiros:</Text>
+                      {item.passengers.map((p, index) => (
+                        <View key={p.user.id ?? index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                          {p.user.image && (
+                            <Image
+                              source={{ uri: p.user.image }}
+                              style={{ width: 30, height: 30, borderRadius: 15, marginRight: 8 }}
+                            />
+                          )}
+                          <Text style={styles.details}>{p.user.name}</Text>
+                        </View>
+                      ))}
+                    </>
+                  )}
+
                   <TouchableOpacity
                     onPress={() => deleteRide(item.id)}
                     style={{

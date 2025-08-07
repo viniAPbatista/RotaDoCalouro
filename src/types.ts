@@ -41,4 +41,11 @@ export type Ride = {
         id: string;
         name: string;
     };
+    passengers?: Array<{
+        user: {
+            id: string;
+            name: string;
+            image?: string;
+        };
+    }>
 };
