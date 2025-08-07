@@ -1,16 +1,32 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView, Image } from "react-native";
 import { useState } from "react";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from "expo-router";
 import { useAuth } from '@clerk/clerk-expo';
 import { supabase } from '../../lib/supabase';
+import * as ImagePicker from "expo-image-picker";
 
 export default function CriarPost() {
 
     const [textPost, setTextPost] = useState('')
-
     const router = useRouter();
     const { userId } = useAuth();
+    const [image, setImage] = useState<string | null>(null);
+
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [4,3],
+            quality: 1
+        })
+
+        console.log(result)
+
+        if(!result.canceled) {
+            setImage(result.assets[0].uri)
+        }
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -37,6 +53,17 @@ export default function CriarPost() {
                             multiline
                             textAlignVertical="top"
                         />
+
+                        {image && (
+                            <Image 
+                                source={{ uri: image }}
+                                style={{ width: "100%", aspectRatio: 1 }}
+                            />
+                        )}
+
+                        <TouchableOpacity style={styles.buttonImage} onPress={pickImage}>
+                            <Text style={styles.buttonText}>Adicionar imagem</Text>
+                        </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.button}
                             onPress={async () => {
@@ -127,5 +154,14 @@ const styles = StyleSheet.create({
     },
     backButton: {
         marginBottom: 25
+    },
+    buttonImage: {
+        backgroundColor: '#08c931ff',
+        width: '100%',
+        borderRadius: 4,
+        paddingVertical: 12,
+        marginTop: 20,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
 })
