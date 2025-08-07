@@ -31,6 +31,8 @@ export default function TabOneScreen() {
             original_seats,
             price,
             user_id,
+            car_model,
+            car_plate,
             users (
               name
             )
@@ -152,6 +154,8 @@ export default function TabOneScreen() {
         <Text style={styles.details}>Vagas: {item.seats}</Text>
         <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
         <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
+        <Text style={styles.details}>Modelo do carro: {item.car_model || 'Não informado'}</Text>
+        <Text style={styles.details}>Placa: {item.car_plate || 'Não informada'}</Text>
 
         {item.user_id !== userId && item.seats > 0 && (
           reservadas.includes(item.id) ? (
