@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, FlatList, Image, ScrollView } from 'react-native';
+import { StyleSheet, TouchableOpacity, Image, ScrollView, Linking, Alert } from 'react-native';
 import { Text, View } from '@/src/components/Themed';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useEffect, useState, useCallback } from 'react';
@@ -193,6 +193,24 @@ export default function Perfil() {
     );
   };
 
+  const openWaze = async (destination: string) => {
+    const encodedDest = encodeURIComponent(destination);
+    const url = `waze://?q=${encodedDest}&navigate=yes`;
+    const webUrl = `https://www.waze.com/ul?q=${encodedDest}&navigate=yes`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        await Linking.openURL(webUrl);
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível abrir a rota.');
+      console.error('Erro ao abrir o Waze:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {user && (
@@ -234,6 +252,7 @@ export default function Perfil() {
 
               return (
                 <View key={item.id} style={styles.containerCarona}>
+                  {/* ... (código existente para exibir os detalhes da carona) ... */}
                   <Text style={styles.title}>{item.origin} ➜ {item.destination}</Text>
                   <Text style={styles.details}>Data: {new Date(item.ride_date).toLocaleDateString('pt-BR')}</Text>
                   <Text style={styles.details}>Hora: {item.ride_time.slice(0, 5)}</Text>
@@ -241,6 +260,7 @@ export default function Perfil() {
                   <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
                   <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
 
+                  {/* ... (código existente para exibir os passageiros) ... */}
                   {item.passengers && item.passengers.length > 0 && (
                     <>
                       <Text style={[styles.details, { marginTop: 8, fontWeight: 'bold' }]}>Passageiros:</Text>
@@ -258,18 +278,22 @@ export default function Perfil() {
                     </>
                   )}
 
-                  <TouchableOpacity
-                    onPress={() => deleteRide(item.id)}
-                    style={{
-                      backgroundColor: '#ff5252',
-                      padding: 8,
-                      borderRadius: 6,
-                      alignSelf: 'flex-end',
-                      marginTop: 10,
-                    }}
-                  >
-                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Excluir</Text>
-                  </TouchableOpacity>
+                  {/* Container para os botões */}
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      onPress={() => openWaze(item.destination)}
+                      style={[styles.actionButton, { backgroundColor: '#33cc33' }]}
+                    >
+                      <Text style={styles.actionButtonText}>Abrir no Waze</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => deleteRide(item.id)}
+                      style={[styles.actionButton, { backgroundColor: '#ff5252' }]}
+                    >
+                      <Text style={styles.actionButtonText}>Excluir</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               );
             })}
@@ -386,5 +410,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     marginBottom: 2,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+    gap: 10,
+  },
+  actionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
