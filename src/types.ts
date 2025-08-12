@@ -61,4 +61,7 @@ export interface Moradia {
     vagas: number;
     valor: number;
     user_id?: string;
+     users?: {
+      name: string;
+    };
 }
