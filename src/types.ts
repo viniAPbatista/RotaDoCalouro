@@ -49,3 +49,16 @@ export type Ride = {
         };
     }>
 };
+
+export interface Moradia {
+    id: string;
+    created_at: string;
+    titulo: string;
+    descricao: string;
+    fotos: string[];
+    quartos: number;
+    banheiros: number;
+    vagas: number;
+    valor: number;
+    user_id?: string;
+}
