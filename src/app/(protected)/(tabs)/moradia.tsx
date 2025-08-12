@@ -80,12 +80,7 @@ export default function Moradias() {
         data={moradias}
         renderItem={({ item }) => <MoradiaItem item={item} />}
         keyExtractor={item => item.id}
-        contentContainerStyle={{
-          flexGrow: 1, 
-          justifyContent: 'center', 
-          padding: 10,
-          paddingBottom: 100,
-        }}
+        contentContainerStyle={{ padding: 10, paddingBottom: 100 }}
         ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma moradia cadastrada ainda.</Text>}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -119,6 +114,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 8,
     marginBottom: 15,
+    marginTop: '10%',
     flexDirection: 'row',
     overflow: 'hidden',
     elevation: 3,
