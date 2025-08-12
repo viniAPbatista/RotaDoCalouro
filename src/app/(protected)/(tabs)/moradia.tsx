@@ -7,16 +7,31 @@ import { supabase } from '@/src/lib/supabase';
 
 const MoradiaItem = ({ item }: { item: Moradia }) => (
   <View style={styles.moradiaContainer}>
-    {item.fotos && item.fotos.length > 0 ? (
+    {/* {item.fotos && item.fotos.length > 0 ? (
       <Image source={{ uri: item.fotos[0] }} style={styles.moradiaImagem} />
     ) : (
-      <Image source={{ uri: 'https://via.placeholder.com/150' }} style={styles.moradiaImagem} />
-    )}
+      <Image source={{ uri: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }} style={styles.moradiaImagem} />
+    )} */}
+    <Image source={{ uri: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }} style={styles.moradiaImagem} />
     <View style={styles.moradiaInfo}>
       <Text style={styles.moradiaTitulo}>{item.titulo}</Text>
-      <Text>Quartos: {item.quartos}</Text>
-      <Text>Banheiros: {item.banheiros}</Text>
-      <Text>Vagas: {item.vagas}</Text>
+      
+      <Text style={styles.moradiaDescricao} numberOfLines={2} ellipsizeMode="tail">
+        {item.descricao}
+      </Text>
+
+      {item.users && (
+        <Text style={styles.moradiaProprietario}>
+          Anunciado por: {item.users.name}
+        </Text>
+      )}
+
+      <View style={styles.detailsRow}>
+        <Text style={styles.detailText}>Quartos: {item.quartos}</Text>
+        <Text style={styles.detailText}>Banheiros: {item.banheiros}</Text>
+        <Text style={styles.detailText}>Vagas: {item.vagas}</Text>
+      </View>
+
       <Text style={styles.moradiaValor}>R$ {Number(item.valor).toFixed(2)}</Text>
     </View>
   </View>
@@ -36,13 +51,13 @@ export default function Moradias() {
     try {
       const { data, error } = await supabase
         .from('moradias')
-        .select('*')
+        .select('*, users(name)') 
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       if (data) {
-        setMoradias(data);
+        setMoradias(data as any); 
       }
     } catch (error: any) {
       console.error("Erro ao buscar moradias:", error);
@@ -80,7 +95,7 @@ export default function Moradias() {
         data={moradias}
         renderItem={({ item }) => <MoradiaItem item={item} />}
         keyExtractor={item => item.id}
-        contentContainerStyle={{ padding: 10, paddingBottom: 100 }}
+        contentContainerStyle={styles.listContentContainer}
         ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma moradia cadastrada ainda.</Text>}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -104,6 +119,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#C2DCF2',
   },
+  listContentContainer: {
+    flexGrow: 1,
+    padding: 10,
+    paddingBottom: 100,
+  },
   emptyText: {
     textAlign: 'center',
     marginTop: 50,
@@ -124,35 +144,59 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   moradiaImagem: {
-    width: 100,
-    height: '100%',
+    width: 110, 
+    height: 'auto',
     backgroundColor: '#e0e0e0'
   },
   moradiaInfo: {
-    padding: 15,
+    padding: 12,
     flex: 1,
+    justifyContent: 'space-between',
   },
   moradiaTitulo: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 4,
+  },
+  moradiaDescricao: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  moradiaProprietario: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#272874ff',
+    marginBottom: 8,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  detailText: {
+    fontSize: 13,
+    color: '#333',
   },
   moradiaValor: {
-    marginTop: 10,
+    marginTop: 4,
     fontSize: 16,
     fontWeight: 'bold',
     color: '#32CD32',
+    textAlign: 'right',
   },
   ButtonAdicionarMoradia: {
     position: 'absolute',
-    bottom: 130,
-    right: 30,
+    bottom: 30,
+    right: 20,
     backgroundColor: '#272874ff',
     borderRadius: 30,
-    width: '15%',
-    aspectRatio: 1,
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: 8,
   },
   TextAdicionarMoradia: {
     color: 'white',
