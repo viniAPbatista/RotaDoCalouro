@@ -1,22 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, FlatList, Image, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { StyleSheet, FlatList, Image, ActivityIndicator, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { Text, View } from '@/src/components/Themed';
 import { Moradia } from '@/src/types';
-import { useRouter } from "expo-router";
-// Importe seu cliente Supabase aqui
-// import { supabase } from '@/src/lib/supabase';
+import { useRouter, useFocusEffect } from "expo-router";
+import { supabase } from '@/src/lib/supabase';
 
 const MoradiaItem = ({ item }: { item: Moradia }) => (
   <View style={styles.moradiaContainer}>
-    {item.fotos && item.fotos.length > 0 && (
+    {item.fotos && item.fotos.length > 0 ? (
       <Image source={{ uri: item.fotos[0] }} style={styles.moradiaImagem} />
+    ) : (
+      <Image source={{ uri: 'https://via.placeholder.com/150' }} style={styles.moradiaImagem} />
     )}
     <View style={styles.moradiaInfo}>
       <Text style={styles.moradiaTitulo}>{item.titulo}</Text>
       <Text>Quartos: {item.quartos}</Text>
       <Text>Banheiros: {item.banheiros}</Text>
       <Text>Vagas: {item.vagas}</Text>
-      <Text style={styles.moradiaValor}>R$ {item.valor.toFixed(2)}</Text>
+      <Text style={styles.moradiaValor}>R$ {Number(item.valor).toFixed(2)}</Text>
     </View>
   </View>
 );
@@ -24,40 +25,51 @@ const MoradiaItem = ({ item }: { item: Moradia }) => (
 export default function Moradias() {
   const [moradias, setMoradias] = useState<Moradia[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter()
+  const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
 
   function handleAcessCriarMoradia() {
-    router.push('/criarMoradia')
+    router.push('/criarMoradia');
   }
 
-  useEffect(() => {
-    const fetchMoradias = async () => {
-      // Aqui você buscará as moradias no Supabase
-      // Exemplo:
-      /*
+  const fetchMoradias = async () => {
+    try {
       const { data, error } = await supabase
         .from('moradias')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (!error && data) {
+      if (error) throw error;
+
+      if (data) {
         setMoradias(data);
       }
-      */
-      // Dados de exemplo enquanto a busca não é implementada:
-      setMoradias([
-        { id: '1', created_at: '', titulo: 'Apartamento perto da faculdade', descricao: '', fotos: ['https://via.placeholder.com/150'], quartos: 2, banheiros: 1, vagas: 2, valor: 1200 },
-        { id: '2', created_at: '', titulo: 'Kitnet mobiliada', descricao: '', fotos: ['https://via.placeholder.com/150'], quartos: 1, banheiros: 1, vagas: 1, valor: 800 },
-      ]);
+    } catch (error: any) {
+      console.error("Erro ao buscar moradias:", error);
+      Alert.alert('Erro', `Não foi possível carregar a lista de moradias: ${error.message}`);
+    } finally {
       setLoading(false);
-    };
+      setRefreshing(false);
+    }
+  };
 
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      fetchMoradias();
+    }, [])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
     fetchMoradias();
   }, []);
 
-  if (loading) {
+
+  if (loading && !refreshing) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0000ff" />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#272874ff" />
       </View>
     );
   }
@@ -68,7 +80,16 @@ export default function Moradias() {
         data={moradias}
         renderItem={({ item }) => <MoradiaItem item={item} />}
         keyExtractor={item => item.id}
-        contentContainerStyle={{ padding: 10 }}
+        contentContainerStyle={{
+          flexGrow: 1, 
+          justifyContent: 'center', 
+          padding: 10,
+          paddingBottom: 100,
+        }}
+        ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma moradia cadastrada ainda.</Text>}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
       <TouchableOpacity style={styles.ButtonAdicionarMoradia} onPress={handleAcessCriarMoradia}>
         <Text style={styles.TextAdicionarMoradia}>+</Text>
@@ -81,6 +102,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#C2DCF2',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#C2DCF2',
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 50,
+    fontSize: 16,
+    color: '#555',
   },
   moradiaContainer: {
     backgroundColor: 'white',
@@ -97,6 +130,7 @@ const styles = StyleSheet.create({
   moradiaImagem: {
     width: 100,
     height: '100%',
+    backgroundColor: '#e0e0e0'
   },
   moradiaInfo: {
     padding: 15,
@@ -127,5 +161,6 @@ const styles = StyleSheet.create({
   TextAdicionarMoradia: {
     color: 'white',
     fontSize: 35,
+    lineHeight: 40,
   },
 });
