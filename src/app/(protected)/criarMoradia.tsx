@@ -3,8 +3,8 @@ import { StyleSheet, View, TextInput, Alert, TouchableOpacity, KeyboardAvoidingV
 import { Text } from '@/src/components/Themed';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from "expo-router";
-import { useUser } from '@clerk/clerk-react'; 
-import { supabase } from '@/src/lib/supabase'; 
+import { useUser } from '@clerk/clerk-react';
+import { supabase } from '@/src/lib/supabase';
 
 export default function CriarMoradia() {
   const [titulo, setTitulo] = useState('');
@@ -13,10 +13,12 @@ export default function CriarMoradia() {
   const [banheiros, setBanheiros] = useState('');
   const [vagas, setVagas] = useState('');
   const [valor, setValor] = useState('');
-  const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(false);
+  const [endereco, setEndereco] = useState('');
+  const [telefone, setTelefone] = useState('');
 
   const router = useRouter();
-  const { user } = useUser(); 
+  const { user } = useUser();
 
   const handleSalvarMoradia = async () => {
     if (!user) {
@@ -28,7 +30,7 @@ export default function CriarMoradia() {
       return;
     }
 
-    setLoading(true); 
+    setLoading(true);
 
     try {
       const { data, error } = await supabase
@@ -36,12 +38,14 @@ export default function CriarMoradia() {
         .insert([{
           titulo,
           descricao,
-          quartos: parseInt(quartos, 10), 
+          quartos: parseInt(quartos, 10),
           banheiros: parseInt(banheiros, 10),
           vagas: parseInt(vagas, 10),
-          valor: parseFloat(valor), 
-          fotos: [], 
-          user_id: user.id, 
+          valor: parseFloat(valor),
+          fotos: [],
+          user_id: user.id,
+          endereco, 
+          telefone, 
         }]);
 
       if (error) {
@@ -49,7 +53,7 @@ export default function CriarMoradia() {
       }
 
       Alert.alert('Sucesso!', 'Sua moradia foi cadastrada.');
-      router.back(); 
+      router.back();
 
     } catch (error: any) {
       console.error("Erro ao salvar moradia:", error);
@@ -88,6 +92,13 @@ export default function CriarMoradia() {
             onChangeText={setDescricao}
             multiline
           />
+          <Text style={styles.textInput}>Endereço</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: Rua das Flores, 123, Bairro Feliz"
+            value={endereco}
+            onChangeText={setEndereco}
+          />
           <Text style={styles.textInput}>Quartos</Text>
           <TextInput
             style={styles.input}
@@ -120,10 +131,18 @@ export default function CriarMoradia() {
             onChangeText={setValor}
             keyboardType="numeric"
           />
-          <TouchableOpacity 
-            style={styles.button} 
+          <Text style={styles.textInput}>Telefone para Contato</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="(11) 99999-9999"
+            value={telefone}
+            onChangeText={setTelefone}
+            keyboardType="phone-pad"
+          />
+          <TouchableOpacity
+            style={styles.button}
             onPress={handleSalvarMoradia}
-            disabled={loading} 
+            disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="white" />
@@ -183,7 +202,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: '20%',
-    height: 48, 
+    height: 48,
   },
   buttonText: {
     color: 'white',
