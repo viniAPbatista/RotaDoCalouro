@@ -79,6 +79,7 @@ export default function Feed() {
         renderItem={({ item }) => <PostListItem post={item} />}
         refreshing={refreshing}
         onRefresh={handleRefresh}
+        style={{marginBottom: '27%'}}
       />
       <TouchableOpacity style={styles.ButtonAdicionarPost} onPress={handleAcessCriarPost}>
         <Text style={styles.TextAdicionarPost}>+</Text>
