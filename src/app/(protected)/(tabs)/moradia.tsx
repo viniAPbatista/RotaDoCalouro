@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   ButtonAdicionarMoradia: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 130,
     right: 20,
     backgroundColor: '#272874ff',
     borderRadius: 30,

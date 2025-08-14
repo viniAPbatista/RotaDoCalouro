@@ -3,9 +3,31 @@ import { Text, View } from '@/src/components/Themed';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { Post, Ride } from '@/src/types';
+import { Post, Ride, Moradia } from '@/src/types'; 
 import PostListItem from '../../../components/postListItem';
 import { useFocusEffect } from '@react-navigation/native';
+
+const MoradiaAnunciadaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: string) => void }) => (
+  <View style={styles.containerItem}>
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <Image
+        source={{ uri: item.fotos && item.fotos.length > 0 ? item.fotos[0] : 'https://placehold.co/300x300.png' }}
+        style={styles.itemImage}
+      />
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Text style={styles.title}>{item.titulo}</Text>
+        <Text style={styles.details}>Quartos: {item.quartos} | Banheiros: {item.banheiros}</Text>
+        <Text style={styles.price}>R$ {Number(item.valor).toFixed(2)}</Text>
+      </View>
+    </View>
+    <TouchableOpacity
+      onPress={() => onDelete(item.id)}
+      style={[styles.actionButton, styles.deleteButton]}
+    >
+      <Text style={styles.actionButtonText}>Excluir</Text>
+    </TouchableOpacity>
+  </View>
+);
 
 export default function Perfil() {
   const { signOut } = useAuth();
@@ -14,6 +36,7 @@ export default function Perfil() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [rides, setRides] = useState<Ride[]>([]);
   const [reservedRides, setReservedRides] = useState<Ride[]>([]);
+  const [userMoradias, setUserMoradias] = useState<Moradia[]>([]); 
 
   useFocusEffect(
     useCallback(() => {
@@ -21,9 +44,24 @@ export default function Perfil() {
         fetchUserPosts(user.id);
         fetchUserRides(user.id);
         fetchReservedRides(user.id);
+        fetchUserMoradias(user.id);
       }
     }, [user])
   );
+
+  const fetchUserMoradias = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('moradias')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar moradias:', error.message);
+      return;
+    }
+    setUserMoradias(data || []);
+  };
 
   const fetchUserPosts = async (userId: string) => {
     const { data: postsData, error } = await supabase
@@ -137,6 +175,22 @@ export default function Perfil() {
     setReservedRides(ridesOnly);
   };
 
+  const deleteMoradia = async (moradiaId: string) => {
+    const { error } = await supabase
+      .from('moradias')
+      .delete()
+      .eq('id', moradiaId);
+
+    if (error) {
+      Alert.alert('Erro', 'Não foi possível excluir o anúncio da moradia.');
+      console.error('Erro ao excluir a moradia:', error.message);
+      return;
+    }
+
+    setUserMoradias(prevMoradias => prevMoradias.filter(moradia => moradia.id !== moradiaId));
+    Alert.alert('Sucesso', 'Anúncio excluído.');
+  };
+
   const deletePost = async (postId: string) => {
     const { error } = await supabase
       .from('posts')
@@ -224,6 +278,16 @@ export default function Perfil() {
           </TouchableOpacity>
 
           <ScrollView style={{ width: '100%', marginBottom: '22%' }} contentContainerStyle={{ paddingBottom: 20 }}>
+
+            <Text style={styles.sectionTitle}>Suas Moradias Anunciadas</Text>
+            {userMoradias.length > 0 ? (
+              userMoradias.map((moradia) => (
+                <MoradiaAnunciadaItem key={moradia.id} item={moradia} onDelete={deleteMoradia} />
+              ))
+            ) : (
+              <Text style={styles.emptyMessage}>Você ainda não anunciou nenhuma moradia.</Text>
+            )}
+            
             <Text style={styles.sectionTitle}>Seus Posts</Text>
             {posts.map((post) => (
               <View key={post.id} style={{ marginBottom: 14, borderRadius: 10 }}>
@@ -252,7 +316,6 @@ export default function Perfil() {
 
               return (
                 <View key={item.id} style={styles.containerCarona}>
-                  {/* ... (código existente para exibir os detalhes da carona) ... */}
                   <Text style={styles.title}>{item.origin} ➜ {item.destination}</Text>
                   <Text style={styles.details}>Data: {new Date(item.ride_date).toLocaleDateString('pt-BR')}</Text>
                   <Text style={styles.details}>Hora: {item.ride_time.slice(0, 5)}</Text>
@@ -260,7 +323,6 @@ export default function Perfil() {
                   <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
                   <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
 
-                  {/* ... (código existente para exibir os passageiros) ... */}
                   {item.passengers && item.passengers.length > 0 && (
                     <>
                       <Text style={[styles.details, { marginTop: 8, fontWeight: 'bold' }]}>Passageiros:</Text>
@@ -278,7 +340,6 @@ export default function Perfil() {
                     </>
                   )}
 
-                  {/* Container para os botões */}
                   <View style={styles.buttonContainer}>
                     <TouchableOpacity
                       onPress={() => openWaze(item.destination)}
@@ -382,13 +443,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     alignSelf: 'center',
   },
-  rideItem: {
-    backgroundColor: '#eef6fc',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  containerCarona: {
+  containerCarona: { 
     backgroundColor: 'white',
     alignSelf: 'center',
     width: '100%',
@@ -401,15 +456,37 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  containerItem: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 14,
+    marginVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  itemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#e0e0e0',
+  },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 4,
   },
   details: {
     fontSize: 14,
     color: '#555',
-    marginBottom: 2,
+    marginTop: 2,
+  },
+  price: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#32CD32',
+    marginTop: 4,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -428,4 +505,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  deleteButton: {
+    backgroundColor: '#ff5252',
+    alignSelf: 'flex-end',
+    marginTop: 10,
+  },
+  emptyMessage: {
+    fontStyle: 'italic',
+    color: '#666',
+    marginBottom: 20
+  }
 });
