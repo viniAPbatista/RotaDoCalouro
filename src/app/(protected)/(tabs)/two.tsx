@@ -3,29 +3,39 @@ import { Text, View } from '@/src/components/Themed';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { Post, Ride, Moradia } from '@/src/types'; 
+import { Post, Ride, Moradia } from '@/src/types';
 import PostListItem from '../../../components/postListItem';
 import { useFocusEffect } from '@react-navigation/native';
 
-const MoradiaAnunciadaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: string) => void }) => (
-  <View style={styles.containerItem}>
-    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <Image
-        source={{ uri: item.fotos && item.fotos.length > 0 ? item.fotos[0] : 'https://placehold.co/300x300.png' }}
-        style={styles.itemImage}
-      />
-      <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text style={styles.title}>{item.titulo}</Text>
-        <Text style={styles.details}>Quartos: {item.quartos} | Banheiros: {item.banheiros}</Text>
-        <Text style={styles.price}>R$ {Number(item.valor).toFixed(2)}</Text>
+const PerfilMoradiaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: string) => void }) => (
+  <View style={styles.moradiaContainer}>
+    {/* <Image
+      source={{ uri: item.fotos && item.fotos.length > 0 ? item.fotos[0] : 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }}
+      style={styles.moradiaImagem}
+    /> */}
+    <Image source={{ uri: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }} style={styles.moradiaImagem} />
+    <View style={styles.moradiaInfo}>
+      <Text style={styles.moradiaTitulo}>{item.titulo}</Text>
+
+      <Text style={styles.moradiaDescricao} numberOfLines={2} ellipsizeMode="tail">
+        {item.descricao}
+      </Text>
+
+      <View style={styles.detailsRow}>
+        <Text style={styles.detailText}>Quartos: {item.quartos}</Text>
+        <Text style={styles.detailText}>Banheiros: {item.banheiros}</Text>
+        <Text style={styles.detailText}>Vagas: {item.vagas}</Text>
       </View>
+
+      <Text style={styles.moradiaValor}>R$ {Number(item.valor).toFixed(2)}</Text>
+
+      <TouchableOpacity
+        onPress={() => onDelete(item.id)}
+        style={styles.deleteButton}
+      >
+        <Text style={styles.deleteButtonText}>Excluir</Text>
+      </TouchableOpacity>
     </View>
-    <TouchableOpacity
-      onPress={() => onDelete(item.id)}
-      style={[styles.actionButton, styles.deleteButton]}
-    >
-      <Text style={styles.actionButtonText}>Excluir</Text>
-    </TouchableOpacity>
   </View>
 );
 
@@ -36,7 +46,7 @@ export default function Perfil() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [rides, setRides] = useState<Ride[]>([]);
   const [reservedRides, setReservedRides] = useState<Ride[]>([]);
-  const [userMoradias, setUserMoradias] = useState<Moradia[]>([]); 
+  const [userMoradias, setUserMoradias] = useState<Moradia[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -52,7 +62,7 @@ export default function Perfil() {
   const fetchUserMoradias = async (userId: string) => {
     const { data, error } = await supabase
       .from('moradias')
-      .select('*')
+      .select('*, users(name)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -60,7 +70,7 @@ export default function Perfil() {
       console.error('Erro ao buscar moradias:', error.message);
       return;
     }
-    setUserMoradias(data || []);
+    setUserMoradias(data as any || []);
   };
 
   const fetchUserPosts = async (userId: string) => {
@@ -282,12 +292,12 @@ export default function Perfil() {
             <Text style={styles.sectionTitle}>Suas Moradias Anunciadas</Text>
             {userMoradias.length > 0 ? (
               userMoradias.map((moradia) => (
-                <MoradiaAnunciadaItem key={moradia.id} item={moradia} onDelete={deleteMoradia} />
+                <PerfilMoradiaItem key={moradia.id} item={moradia} onDelete={deleteMoradia} />
               ))
             ) : (
               <Text style={styles.emptyMessage}>Você ainda não anunciou nenhuma moradia.</Text>
             )}
-            
+
             <Text style={styles.sectionTitle}>Seus Posts</Text>
             {posts.map((post) => (
               <View key={post.id} style={{ marginBottom: 14, borderRadius: 10 }}>
@@ -316,13 +326,12 @@ export default function Perfil() {
 
               return (
                 <View key={item.id} style={styles.containerCarona}>
-                  <Text style={styles.title}>{item.origin} ➜ {item.destination}</Text>
+                  <Text style={styles.titleCarona}>{item.origin} ➜ {item.destination}</Text>
                   <Text style={styles.details}>Data: {new Date(item.ride_date).toLocaleDateString('pt-BR')}</Text>
                   <Text style={styles.details}>Hora: {item.ride_time.slice(0, 5)}</Text>
                   <Text style={styles.details}>Vagas: {item.seats}</Text>
                   <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
                   <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
-
                   {item.passengers && item.passengers.length > 0 && (
                     <>
                       <Text style={[styles.details, { marginTop: 8, fontWeight: 'bold' }]}>Passageiros:</Text>
@@ -339,7 +348,6 @@ export default function Perfil() {
                       ))}
                     </>
                   )}
-
                   <View style={styles.buttonContainer}>
                     <TouchableOpacity
                       onPress={() => openWaze(item.destination)}
@@ -347,7 +355,6 @@ export default function Perfil() {
                     >
                       <Text style={styles.actionButtonText}>Abrir no Waze</Text>
                     </TouchableOpacity>
-
                     <TouchableOpacity
                       onPress={() => deleteRide(item.id)}
                       style={[styles.actionButton, { backgroundColor: '#ff5252' }]}
@@ -369,7 +376,7 @@ export default function Perfil() {
 
                 return (
                   <View key={item.id} style={styles.containerCarona}>
-                    <Text style={styles.title}>{item.origin} ➜ {item.destination}</Text>
+                    <Text style={styles.titleCarona}>{item.origin} ➜ {item.destination}</Text>
                     <Text style={styles.details}>Motorista: {item.user?.name ?? 'Desconhecido'}</Text>
                     <Text style={styles.details}>Modelo do carro: {item.car_model || 'Não informado'}</Text>
                     <Text style={styles.details}>Placa: {item.car_plate || 'Não informada'}</Text>
@@ -443,7 +450,75 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     alignSelf: 'center',
   },
-  containerCarona: { 
+  emptyMessage: {
+    fontStyle: 'italic',
+    color: '#666',
+    marginBottom: 20,
+    alignSelf: 'center',
+  },
+
+  moradiaContainer: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    marginBottom: 15,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  moradiaImagem: {
+    width: 110,
+    height: 'auto',
+    backgroundColor: '#e0e0e0'
+  },
+  moradiaInfo: {
+    padding: 12,
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  moradiaTitulo: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  moradiaDescricao: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  detailText: {
+    fontSize: 13,
+    color: '#333',
+  },
+  moradiaValor: {
+    marginTop: 4,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#32CD32',
+    textAlign: 'right',
+  },
+  deleteButton: {
+    backgroundColor: '#ff5252',
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+
+  containerCarona: {
     backgroundColor: 'white',
     alignSelf: 'center',
     width: '100%',
@@ -456,37 +531,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  containerItem: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 14,
-    marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  itemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: '#e0e0e0',
-  },
-  title: {
-    fontSize: 16,
+  titleCarona: {
+    fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
   details: {
     fontSize: 14,
     color: '#555',
-    marginTop: 2,
-  },
-  price: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#32CD32',
-    marginTop: 4,
+    marginBottom: 2,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -505,14 +558,4 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  deleteButton: {
-    backgroundColor: '#ff5252',
-    alignSelf: 'flex-end',
-    marginTop: 10,
-  },
-  emptyMessage: {
-    fontStyle: 'italic',
-    color: '#666',
-    marginBottom: 20
-  }
 });
