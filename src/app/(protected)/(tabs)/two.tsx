@@ -6,6 +6,7 @@ import { supabase } from '../../../lib/supabase';
 import { Post, Ride, Moradia } from '@/src/types';
 import PostListItem from '../../../components/postListItem';
 import { useFocusEffect } from '@react-navigation/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const PerfilMoradiaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: string) => void }) => (
   <View style={styles.moradiaContainer}>
@@ -15,19 +16,42 @@ const PerfilMoradiaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: s
     /> */}
     <Image source={{ uri: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }} style={styles.moradiaImagem} />
     <View style={styles.moradiaInfo}>
-      <Text style={styles.moradiaTitulo}>{item.titulo}</Text>
-
-      <Text style={styles.moradiaDescricao} numberOfLines={2} ellipsizeMode="tail">
-        {item.descricao}
-      </Text>
-
-      <View style={styles.detailsRow}>
-        <Text style={styles.detailText}>Quartos: {item.quartos}</Text>
-        <Text style={styles.detailText}>Banheiros: {item.banheiros}</Text>
-        <Text style={styles.detailText}>Vagas: {item.vagas}</Text>
+      <View>
+        <Text style={styles.moradiaTitulo}>{item.titulo}</Text>
+        <Text style={styles.moradiaDescricao} numberOfLines={2} ellipsizeMode="tail">
+          {item.descricao}
+        </Text>
       </View>
 
-      <Text style={styles.moradiaValor}>R$ {Number(item.valor).toFixed(2)}</Text>
+      <View style={styles.detailsContainer}>
+        <Text style={styles.specsText}>
+          {`${item.quartos} Quarto(s) • ${item.banheiros} Banheiro(s) • ${item.vagas} Vaga(s)`}
+        </Text>
+
+        {item.endereco && (
+          <View style={styles.iconDetailRow}>
+            <Ionicons name="location-outline" size={16} color="#666" style={styles.icon} />
+            <Text style={styles.iconDetailText} numberOfLines={1}>{item.endereco}</Text>
+          </View>
+        )}
+
+        {item.telefone && (
+          <View style={styles.iconDetailRow}>
+            <Ionicons name="call-outline" size={16} color="#666" style={styles.icon} />
+            <Text style={styles.iconDetailText}>{item.telefone}</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.footerRow}>
+        {item.users && (
+          <Text style={styles.moradiaProprietario}>
+            Anunciado por: {item.users.name}
+          </Text>
+        )}
+        <View style={{ flex: 1 }} />
+        <Text style={styles.moradiaValor}>R$ {Number(item.valor).toFixed(2)}</Text>
+      </View>
 
       <TouchableOpacity
         onPress={() => onDelete(item.id)}
@@ -38,6 +62,7 @@ const PerfilMoradiaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: s
     </View>
   </View>
 );
+
 
 export default function Perfil() {
   const { signOut } = useAuth();
@@ -297,7 +322,7 @@ export default function Perfil() {
             ) : (
               <Text style={styles.emptyMessage}>Você ainda não anunciou nenhuma moradia.</Text>
             )}
-
+            
             <Text style={styles.sectionTitle}>Seus Posts</Text>
             {posts.map((post) => (
               <View key={post.id} style={{ marginBottom: 14, borderRadius: 10 }}>
@@ -456,7 +481,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignSelf: 'center',
   },
-
   moradiaContainer: {
     backgroundColor: 'white',
     borderRadius: 8,
@@ -477,7 +501,6 @@ const styles = StyleSheet.create({
   moradiaInfo: {
     padding: 12,
     flex: 1,
-    justifyContent: 'space-between',
   },
   moradiaTitulo: {
     fontSize: 17,
@@ -487,21 +510,43 @@ const styles = StyleSheet.create({
   moradiaDescricao: {
     fontSize: 13,
     color: '#666',
-    marginBottom: 8,
+    marginBottom: 12,
     lineHeight: 18,
   },
-  detailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+  detailsContainer: {
+    flex: 1, 
+    gap: 8, 
   },
-  detailText: {
+  specsText: {
     fontSize: 13,
     color: '#333',
+    fontWeight: '500',
+  },
+  iconDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  icon: {
+    marginRight: 6,
+  },
+  iconDetailText: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1, 
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end', 
+    marginTop: 12,
+  },
+  moradiaProprietario: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#272874ff',
+    flexShrink: 1, 
   },
   moradiaValor: {
-    marginTop: 4,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#32CD32',
     textAlign: 'right',
@@ -517,7 +562,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-
   containerCarona: {
     backgroundColor: 'white',
     alignSelf: 'center',
