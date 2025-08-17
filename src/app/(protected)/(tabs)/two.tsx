@@ -10,11 +10,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 const PerfilMoradiaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: string) => void }) => (
   <View style={styles.moradiaContainer}>
-    {/* <Image
+    {/* AQUI ESTÁ A CORREÇÃO: Usamos a mesma lógica da outra tela */}
+    <Image
       source={{ uri: item.fotos && item.fotos.length > 0 ? item.fotos[0] : 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }}
       style={styles.moradiaImagem}
-    /> */}
-    <Image source={{ uri: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }} style={styles.moradiaImagem} />
+    />
+
     <View style={styles.moradiaInfo}>
       <View>
         <Text style={styles.moradiaTitulo}>{item.titulo}</Text>
@@ -62,7 +63,6 @@ const PerfilMoradiaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: s
     </View>
   </View>
 );
-
 
 export default function Perfil() {
   const { signOut } = useAuth();
@@ -322,7 +322,7 @@ export default function Perfil() {
             ) : (
               <Text style={styles.emptyMessage}>Você ainda não anunciou nenhuma moradia.</Text>
             )}
-            
+
             <Text style={styles.sectionTitle}>Seus Posts</Text>
             {posts.map((post) => (
               <View key={post.id} style={{ marginBottom: 14, borderRadius: 10 }}>
@@ -514,8 +514,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   detailsContainer: {
-    flex: 1, 
-    gap: 8, 
+    flex: 1,
+    gap: 8,
   },
   specsText: {
     fontSize: 13,
@@ -532,18 +532,18 @@ const styles = StyleSheet.create({
   iconDetailText: {
     fontSize: 14,
     color: '#333',
-    flex: 1, 
+    flex: 1,
   },
   footerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end', 
+    alignItems: 'flex-end',
     marginTop: 12,
   },
   moradiaProprietario: {
     fontSize: 12,
     fontWeight: '500',
     color: '#272874ff',
-    flexShrink: 1, 
+    flexShrink: 1,
   },
   moradiaValor: {
     fontSize: 18,

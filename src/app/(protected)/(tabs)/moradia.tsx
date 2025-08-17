@@ -153,7 +153,6 @@ const styles = StyleSheet.create({
   moradiaContainer: {
     backgroundColor: 'white',
     borderRadius: 8,
-    marginBottom: 15,
     marginTop: '10%',
     flexDirection: 'row',
     overflow: 'hidden',
