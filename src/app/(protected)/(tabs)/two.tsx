@@ -1,7 +1,7 @@
-import { StyleSheet, TouchableOpacity, Image, ScrollView, Linking, Alert } from 'react-native';
+import { StyleSheet, TouchableOpacity, Image, ScrollView, Linking, Alert, RefreshControl } from 'react-native';
 import { Text, View } from '@/src/components/Themed';
 import { useAuth, useUser } from '@clerk/clerk-expo';
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { Post, Ride, Moradia } from '@/src/types';
 import PostListItem from '../../../components/postListItem';
@@ -10,12 +10,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 const PerfilMoradiaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: string) => void }) => (
   <View style={styles.moradiaContainer}>
-    {/* AQUI ESTÁ A CORREÇÃO: Usamos a mesma lógica da outra tela */}
     <Image
       source={{ uri: item.fotos && item.fotos.length > 0 ? item.fotos[0] : 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }}
       style={styles.moradiaImagem}
     />
-
     <View style={styles.moradiaInfo}>
       <View>
         <Text style={styles.moradiaTitulo}>{item.titulo}</Text>
@@ -23,19 +21,16 @@ const PerfilMoradiaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: s
           {item.descricao}
         </Text>
       </View>
-
       <View style={styles.detailsContainer}>
         <Text style={styles.specsText}>
           {`${item.quartos} Quarto(s) • ${item.banheiros} Banheiro(s) • ${item.vagas} Vaga(s)`}
         </Text>
-
         {item.endereco && (
           <View style={styles.iconDetailRow}>
             <Ionicons name="location-outline" size={16} color="#666" style={styles.icon} />
             <Text style={styles.iconDetailText} numberOfLines={1}>{item.endereco}</Text>
           </View>
         )}
-
         {item.telefone && (
           <View style={styles.iconDetailRow}>
             <Ionicons name="call-outline" size={16} color="#666" style={styles.icon} />
@@ -43,7 +38,6 @@ const PerfilMoradiaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: s
           </View>
         )}
       </View>
-
       <View style={styles.footerRow}>
         {item.users && (
           <Text style={styles.moradiaProprietario}>
@@ -53,7 +47,6 @@ const PerfilMoradiaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: s
         <View style={{ flex: 1 }} />
         <Text style={styles.moradiaValor}>R$ {Number(item.valor).toFixed(2)}</Text>
       </View>
-
       <TouchableOpacity
         onPress={() => onDelete(item.id)}
         style={styles.deleteButton}
@@ -72,17 +65,31 @@ export default function Perfil() {
   const [rides, setRides] = useState<Ride[]>([]);
   const [reservedRides, setReservedRides] = useState<Ride[]>([]);
   const [userMoradias, setUserMoradias] = useState<Moradia[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchAllData = useCallback(async () => {
+    if (user?.id) {
+      // Usamos Promise.all para buscar todos os dados em paralelo
+      await Promise.all([
+        fetchUserPosts(user.id),
+        fetchUserRides(user.id),
+        fetchReservedRides(user.id),
+        fetchUserMoradias(user.id),
+      ]);
+    }
+  }, [user]);
 
   useFocusEffect(
     useCallback(() => {
-      if (user?.id) {
-        fetchUserPosts(user.id);
-        fetchUserRides(user.id);
-        fetchReservedRides(user.id);
-        fetchUserMoradias(user.id);
-      }
-    }, [user])
+      fetchAllData();
+    }, [fetchAllData])
   );
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchAllData();
+    setRefreshing(false);
+  }, [fetchAllData]);
 
   const fetchUserMoradias = async (userId: string) => {
     const { data, error } = await supabase
@@ -93,19 +100,16 @@ export default function Perfil() {
 
     if (error) {
       console.error('Erro ao buscar moradias:', error.message);
-      return;
+    } else {
+      setUserMoradias(data as any || []);
     }
-    setUserMoradias(data as any || []);
   };
 
   const fetchUserPosts = async (userId: string) => {
     const { data: postsData, error } = await supabase
       .from('posts')
       .select(`
-        id,
-        content,
-        image_url,
-        created_at,
+        id, content, image_url, created_at,
         user:users!posts_user_id_fkey(id, name, image)
       `)
       .eq('user_id', userId)
@@ -120,94 +124,48 @@ export default function Perfil() {
     const postsWithCounts = await Promise.all(
       postsData.map(async (post: any) => {
         const [{ count: likesCount }, { count: commentsCount }, { data: likedByMe }] = await Promise.all([
-          supabase
-            .from('likes')
-            .select('*', { count: 'exact', head: true })
-            .eq('post_id', post.id),
-          supabase
-            .from('comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('post_id', post.id),
-          supabase
-            .from('likes')
-            .select('user_id')
-            .eq('post_id', post.id)
-            .eq('user_id', userId)
-            .limit(1),
+          supabase.from('likes').select('*', { count: 'exact', head: true }).eq('post_id', post.id),
+          supabase.from('comments').select('*', { count: 'exact', head: true }).eq('post_id', post.id),
+          supabase.from('likes').select('user_id').eq('post_id', post.id).eq('user_id', userId).limit(1),
         ]);
 
         return {
-          id: post.id,
-          content: post.content,
-          image_url: post.image_url,
-          created_at: post.created_at,
-          user: Array.isArray(post.user) ? post.user[0] : post.user,
+          ...post,
           likes: likesCount ?? 0,
           nr_of_comments: commentsCount ?? 0,
           liked_by_me: likedByMe && likedByMe.length > 0,
         } as Post;
       })
     );
-
     setPosts(postsWithCounts);
   };
 
   const fetchUserRides = async (userId: string) => {
     const { data: ridesData, error } = await supabase
       .from('rides')
-      .select(`
-      *,
-      passengers:ride_reservations (
-        user:users (
-          id,
-          name,
-          image
-        )
-      )
-    `)
+      .select(`*, passengers:ride_reservations(user:users(id, name, image))`)
       .eq('user_id', userId)
       .order('ride_date', { ascending: false });
 
     if (error) {
       console.error('Erro ao buscar caronas:', error.message);
-      return;
+    } else {
+      setRides(ridesData || []);
     }
-
-    setRides(ridesData);
   };
 
   const fetchReservedRides = async (userId: string) => {
     const { data, error } = await supabase
       .from('ride_reservations')
-      .select(`
-      ride_id,
-      rides:ride_id (
-        id,
-        origin,
-        destination,
-        ride_date,
-        ride_time,
-        seats,
-        price,
-        original_seats,
-        car_model,
-        car_plate,
-        user:users!rides_user_id_fkey (id, name)
-      )
-    `)
+      .select(`ride_id, rides:ride_id(*, user:users!rides_user_id_fkey(id, name))`)
       .eq('user_id', userId);
 
     if (error) {
       console.error('Erro ao buscar caronas reservadas:', error.message);
-      return;
+    } else {
+      const ridesOnly = data.map((reservation) => reservation.rides).filter(Boolean).flat() as Ride[];
+      setReservedRides(ridesOnly);
     }
-
-    const ridesOnly = data
-      .map((reservation) => reservation.rides)
-      .filter((ride) => ride !== null)
-      .flat() as Ride[];
-
-    setReservedRides(ridesOnly);
   };
 
   const deleteMoradia = async (moradiaId: string) => {
@@ -268,18 +226,9 @@ export default function Perfil() {
       return;
     }
 
-    const { error: rpcError } = await supabase.rpc('increment_seats', {
-      ride_id_input: rideId,
-    });
+    await supabase.rpc('increment_seats', { ride_id_input: rideId });
 
-    if (rpcError) {
-      console.error('Erro ao atualizar vagas da carona:', rpcError.message);
-      return;
-    }
-
-    setReservedRides(prev =>
-      prev.filter(ride => ride.id !== rideId)
-    );
+    setReservedRides(prev => prev.filter(ride => ride.id !== rideId));
   };
 
   const openWaze = async (destination: string) => {
@@ -304,6 +253,7 @@ export default function Perfil() {
     <View style={styles.container}>
       {user && (
         <>
+          {/* O conteúdo do cabeçalho fica fora do ScrollView para não rolar junto */}
           <Image source={{ uri: user.imageUrl }} style={styles.avatar} />
           <Text style={styles.name}>{user.username}</Text>
           <Text style={styles.email}>{user.primaryEmailAddress?.emailAddress}</Text>
@@ -312,8 +262,17 @@ export default function Perfil() {
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
 
-          <ScrollView style={{ width: '100%', marginBottom: '22%' }} contentContainerStyle={{ paddingBottom: 20 }}>
-
+          <ScrollView
+            style={{ width: '100%', marginBottom: '22%' }}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#272874ff"
+              />
+            }
+          >
             <Text style={styles.sectionTitle}>Suas Moradias Anunciadas</Text>
             {userMoradias.length > 0 ? (
               userMoradias.map((moradia) => (
@@ -329,16 +288,9 @@ export default function Perfil() {
                 <PostListItem post={post} />
                 <TouchableOpacity
                   onPress={() => deletePost(post.id)}
-                  style={{
-                    backgroundColor: '#ff5252',
-                    padding: 8,
-                    borderRadius: 6,
-                    alignSelf: 'flex-end',
-                    marginRight: 10,
-                    marginBottom: 10,
-                  }}
+                  style={styles.deletePostButton}
                 >
-                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Excluir</Text>
+                  <Text style={styles.deleteButtonText}>Excluir</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -361,12 +313,9 @@ export default function Perfil() {
                     <>
                       <Text style={[styles.details, { marginTop: 8, fontWeight: 'bold' }]}>Passageiros:</Text>
                       {item.passengers.map((p, index) => (
-                        <View key={p.user.id ?? index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                        <View key={p.user.id ?? index} style={styles.passengerContainer}>
                           {p.user.image && (
-                            <Image
-                              source={{ uri: p.user.image }}
-                              style={{ width: 30, height: 30, borderRadius: 15, marginRight: 8 }}
-                            />
+                            <Image source={{ uri: p.user.image }} style={styles.passengerImage} />
                           )}
                           <Text style={styles.details}>{p.user.name}</Text>
                         </View>
@@ -390,9 +339,10 @@ export default function Perfil() {
                 </View>
               );
             })}
+
             <Text style={styles.sectionTitle}>Caronas Reservadas</Text>
             {reservedRides.length === 0 ? (
-              <Text style={{ fontStyle: 'italic', color: '#666' }}>Nenhuma carona reservada.</Text>
+              <Text style={styles.emptyMessage}>Nenhuma carona reservada.</Text>
             ) : (
               reservedRides.map((item: Ride) => {
                 const pricePerPassenger = item.original_seats && item.original_seats > 0
@@ -412,15 +362,9 @@ export default function Perfil() {
 
                     <TouchableOpacity
                       onPress={() => cancelRideReservation(item.id)}
-                      style={{
-                        backgroundColor: '#ff5252',
-                        padding: 8,
-                        borderRadius: 6,
-                        alignSelf: 'flex-end',
-                        marginTop: 10,
-                      }}
+                      style={styles.cancelButton}
                     >
-                      <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cancelar reserva</Text>
+                      <Text style={styles.deleteButtonText}>Cancelar reserva</Text>
                     </TouchableOpacity>
                   </View>
                 );
@@ -562,6 +506,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  deletePostButton: {
+    backgroundColor: '#ff5252',
+    padding: 8,
+    borderRadius: 6,
+    alignSelf: 'flex-end',
+    marginRight: 10,
+    marginBottom: 10,
+  },
   containerCarona: {
     backgroundColor: 'white',
     alignSelf: 'center',
@@ -585,6 +537,17 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 2,
   },
+  passengerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4
+  },
+  passengerImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginRight: 8
+  },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -601,5 +564,12 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  cancelButton: {
+    backgroundColor: '#ff5252',
+    padding: 8,
+    borderRadius: 6,
+    alignSelf: 'flex-end',
+    marginTop: 10,
   },
 });

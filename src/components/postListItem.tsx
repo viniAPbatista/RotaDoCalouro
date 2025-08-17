@@ -3,7 +3,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Post } from "../types";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+// NOVO: Importamos o useEffect
+import { useState, useEffect } from "react";
 import { supabase } from "@/src/lib/supabase";
 import { useUser } from "@clerk/clerk-expo";
 
@@ -18,6 +19,15 @@ export default function PostListItem({ post }: PostListItemProps) {
 
     const router = useRouter();
     const { user } = useUser();
+
+    // AQUI ESTÁ A SOLUÇÃO SIMPLES:
+    // Este useEffect "escuta" por mudanças nas propriedades do post.
+    // Se a tela de Feed ou Perfil buscar dados novos, este código
+    // garante que o estado interno do card seja atualizado.
+    useEffect(() => {
+        setLiked(post.liked_by_me);
+        setLikeCount(post.likes || 0);
+    }, [post.liked_by_me, post.likes]);
 
     const toggleLike = async () => {
         if (!user) return;
