@@ -150,10 +150,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
   },
-  moradiaContainer: {
+moradiaContainer: {
     backgroundColor: 'white',
     borderRadius: 8,
-    marginTop: '10%',
+    marginTop: 15,
     flexDirection: 'row',
     overflow: 'hidden',
     elevation: 3,
