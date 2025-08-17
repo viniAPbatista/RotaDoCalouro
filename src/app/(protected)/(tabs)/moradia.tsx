@@ -8,12 +8,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 const MoradiaItem = ({ item }: { item: Moradia }) => (
   <View style={styles.moradiaContainer}>
-    {/* {item.fotos && item.fotos.length > 0 ? (
+    {/* AQUI ESTÁ A MUDANÇA: Exibe a primeira foto do array 'fotos' */}
+    {item.fotos && item.fotos.length > 0 ? (
       <Image source={{ uri: item.fotos[0] }} style={styles.moradiaImagem} />
     ) : (
+      // Se não houver foto, exibe uma imagem padrão
       <Image source={{ uri: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }} style={styles.moradiaImagem} />
-    )} */}
-    <Image source={{ uri: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }} style={styles.moradiaImagem} />
+    )}
+    
     <View style={styles.moradiaInfo}>
       <View>
         <Text style={styles.moradiaTitulo}>{item.titulo}</Text>
