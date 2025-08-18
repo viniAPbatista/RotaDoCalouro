@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, Image, ScrollView, Linking, Alert, RefreshControl } from 'react-native';
+import { StyleSheet, TouchableOpacity, Image, ScrollView, Linking, Alert, RefreshControl, ActivityIndicator } from 'react-native';
 import { Text, View } from '@/src/components/Themed';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useState, useCallback } from 'react';
@@ -7,6 +7,7 @@ import { Post, Ride, Moradia } from '@/src/types';
 import PostListItem from '../../../components/postListItem';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as ImagePicker from 'expo-image-picker';
 
 const PerfilMoradiaItem = ({ item, onDelete }: { item: Moradia, onDelete: (id: string) => void }) => (
   <View style={styles.moradiaContainer}>
@@ -66,10 +67,44 @@ export default function Perfil() {
   const [reservedRides, setReservedRides] = useState<Ride[]>([]);
   const [userMoradias, setUserMoradias] = useState<Moradia[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const onSelectProfileImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Permissão para acessar a galeria é necessária.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true, // CORREÇÃO APLICADA AQUI
+    });
+
+    if (result.canceled || !user) {
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const asset = result.assets[0];
+      // CORREÇÃO APLICADA AQUI
+      await user.setProfileImage({
+        file: `data:${asset.mimeType};base64,${asset.base64}`,
+      });
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Erro', 'Não foi possível atualizar a foto de perfil.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const fetchAllData = useCallback(async () => {
     if (user?.id) {
-      // Usamos Promise.all para buscar todos os dados em paralelo
       await Promise.all([
         fetchUserPosts(user.id),
         fetchUserRides(user.id),
@@ -92,35 +127,15 @@ export default function Perfil() {
   }, [fetchAllData]);
 
   const fetchUserMoradias = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('moradias')
-      .select('*, users(name)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Erro ao buscar moradias:', error.message);
-    } else {
-      setUserMoradias(data as any || []);
-    }
+    const { data, error } = await supabase.from('moradias').select('*, users(name)').eq('user_id', userId).order('created_at', { ascending: false });
+    if (error) console.error('Erro ao buscar moradias:', error.message);
+    else setUserMoradias(data as any || []);
   };
 
   const fetchUserPosts = async (userId: string) => {
-    const { data: postsData, error } = await supabase
-      .from('posts')
-      .select(`
-        id, content, image_url, created_at,
-        user:users!posts_user_id_fkey(id, name, image)
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Erro ao buscar posts:', error.message);
-      return;
-    }
+    const { data: postsData, error } = await supabase.from('posts').select(`id, content, image_url, created_at, user:users!posts_user_id_fkey(id, name, image)`).eq('user_id', userId).order('created_at', { ascending: false });
+    if (error) { console.error('Erro ao buscar posts:', error.message); return; }
     if (!postsData) return;
-
     const postsWithCounts = await Promise.all(
       postsData.map(async (post: any) => {
         const [{ count: likesCount }, { count: commentsCount }, { data: likedByMe }] = await Promise.all([
@@ -128,133 +143,79 @@ export default function Perfil() {
           supabase.from('comments').select('*', { count: 'exact', head: true }).eq('post_id', post.id),
           supabase.from('likes').select('user_id').eq('post_id', post.id).eq('user_id', userId).limit(1),
         ]);
-
-        return {
-          ...post,
-          likes: likesCount ?? 0,
-          nr_of_comments: commentsCount ?? 0,
-          liked_by_me: likedByMe && likedByMe.length > 0,
-        } as Post;
+        return { ...post, likes: likesCount ?? 0, nr_of_comments: commentsCount ?? 0, liked_by_me: likedByMe && likedByMe.length > 0 } as Post;
       })
     );
     setPosts(postsWithCounts);
   };
 
   const fetchUserRides = async (userId: string) => {
-    const { data: ridesData, error } = await supabase
-      .from('rides')
-      .select(`*, passengers:ride_reservations(user:users(id, name, image))`)
-      .eq('user_id', userId)
-      .order('ride_date', { ascending: false });
-
-    if (error) {
-      console.error('Erro ao buscar caronas:', error.message);
-    } else {
-      setRides(ridesData || []);
-    }
+    const { data: ridesData, error } = await supabase.from('rides').select(`*, passengers:ride_reservations(user:users(id, name, image))`).eq('user_id', userId).order('ride_date', { ascending: false });
+    if (error) console.error('Erro ao buscar caronas:', error.message);
+    else setRides(ridesData || []);
   };
 
   const fetchReservedRides = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('ride_reservations')
-      .select(`ride_id, rides:ride_id(*, user:users!rides_user_id_fkey(id, name))`)
-      .eq('user_id', userId);
-
-    if (error) {
-      console.error('Erro ao buscar caronas reservadas:', error.message);
-    } else {
+    const { data, error } = await supabase.from('ride_reservations').select(`ride_id, rides:ride_id(*, user:users!rides_user_id_fkey(id, name))`).eq('user_id', userId);
+    if (error) console.error('Erro ao buscar caronas reservadas:', error.message);
+    else {
       const ridesOnly = data.map((reservation) => reservation.rides).filter(Boolean).flat() as Ride[];
       setReservedRides(ridesOnly);
     }
   };
 
   const deleteMoradia = async (moradiaId: string) => {
-    const { error } = await supabase
-      .from('moradias')
-      .delete()
-      .eq('id', moradiaId);
-
-    if (error) {
-      Alert.alert('Erro', 'Não foi possível excluir o anúncio da moradia.');
-      console.error('Erro ao excluir a moradia:', error.message);
-      return;
-    }
-
-    setUserMoradias(prevMoradias => prevMoradias.filter(moradia => moradia.id !== moradiaId));
-    Alert.alert('Sucesso', 'Anúncio excluído.');
+    const { error } = await supabase.from('moradias').delete().eq('id', moradiaId);
+    if (error) Alert.alert('Erro', 'Não foi possível excluir o anúncio.');
+    else { setUserMoradias(prev => prev.filter(m => m.id !== moradiaId)); Alert.alert('Sucesso', 'Anúncio excluído.'); }
   };
 
   const deletePost = async (postId: string) => {
-    const { error } = await supabase
-      .from('posts')
-      .delete()
-      .eq('id', postId);
-
-    if (error) {
-      console.error('Erro ao excluir o post:', error.message);
-      return;
-    }
-
-    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+    const { error } = await supabase.from('posts').delete().eq('id', postId);
+    if (error) console.error('Erro ao excluir o post:', error.message);
+    else setPosts(prev => prev.filter(p => p.id !== postId));
   };
 
   const deleteRide = async (rideId: string) => {
-    const { error } = await supabase
-      .from('rides')
-      .delete()
-      .eq('id', rideId);
-
-    if (error) {
-      console.error('Erro ao excluir a carona:', error.message);
-      return;
-    }
-
-    setRides(prevRides => prevRides.filter(ride => ride.id !== rideId));
+    const { error } = await supabase.from('rides').delete().eq('id', rideId);
+    if (error) console.error('Erro ao excluir a carona:', error.message);
+    else setRides(prev => prev.filter(r => r.id !== rideId));
   };
 
   const cancelRideReservation = async (rideId: string) => {
     if (!user?.id) return;
-
-    const { error: deleteError } = await supabase
-      .from('ride_reservations')
-      .delete()
-      .eq('ride_id', rideId)
-      .eq('user_id', user.id);
-
-    if (deleteError) {
-      console.error('Erro ao cancelar reserva:', deleteError.message);
-      return;
+    const { error } = await supabase.from('ride_reservations').delete().eq('ride_id', rideId).eq('user_id', user.id);
+    if (error) console.error('Erro ao cancelar reserva:', error.message);
+    else {
+      await supabase.rpc('increment_seats', { ride_id_input: rideId });
+      setReservedRides(prev => prev.filter(r => r.id !== rideId));
     }
-
-    await supabase.rpc('increment_seats', { ride_id_input: rideId });
-
-    setReservedRides(prev => prev.filter(ride => ride.id !== rideId));
   };
 
   const openWaze = async (destination: string) => {
-    const encodedDest = encodeURIComponent(destination);
-    const url = `waze://?q=${encodedDest}&navigate=yes`;
-    const webUrl = `https://www.waze.com/ul?q=${encodedDest}&navigate=yes`;
-
-    try {
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url);
-      } else {
-        await Linking.openURL(webUrl);
-      }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível abrir a rota.');
-      console.error('Erro ao abrir o Waze:', error);
-    }
+    const url = `waze://?q=${encodeURIComponent(destination)}&navigate=yes`;
+    try { await Linking.openURL(url); }
+    catch { Alert.alert('Erro', 'Não foi possível abrir o Waze.'); }
   };
 
   return (
     <View style={styles.container}>
       {user && (
         <>
-          {/* O conteúdo do cabeçalho fica fora do ScrollView para não rolar junto */}
-          <Image source={{ uri: user.imageUrl }} style={styles.avatar} />
+          <View style={styles.avatarContainer}>
+            <TouchableOpacity onPress={onSelectProfileImage} disabled={isUploading}>
+              <Image source={{ uri: user.imageUrl }} style={styles.avatar} />
+              <View style={styles.editIconContainer}>
+                <Ionicons name="camera-outline" size={20} color="white" />
+              </View>
+              {isUploading && (
+                <View style={styles.uploadingOverlay}>
+                  <ActivityIndicator color="white" />
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
           <Text style={styles.name}>{user.username}</Text>
           <Text style={styles.email}>{user.primaryEmailAddress?.emailAddress}</Text>
 
@@ -265,31 +226,18 @@ export default function Perfil() {
           <ScrollView
             style={{ width: '100%', marginBottom: '22%' }}
             contentContainerStyle={{ paddingBottom: 20 }}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor="#272874ff"
-              />
-            }
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#272874ff" />}
           >
             <Text style={styles.sectionTitle}>Suas Moradias Anunciadas</Text>
             {userMoradias.length > 0 ? (
-              userMoradias.map((moradia) => (
-                <PerfilMoradiaItem key={moradia.id} item={moradia} onDelete={deleteMoradia} />
-              ))
-            ) : (
-              <Text style={styles.emptyMessage}>Você ainda não anunciou nenhuma moradia.</Text>
-            )}
+              userMoradias.map((moradia) => <PerfilMoradiaItem key={moradia.id} item={moradia} onDelete={deleteMoradia} />)
+            ) : ( <Text style={styles.emptyMessage}>Você ainda não anunciou nenhuma moradia.</Text> )}
 
             <Text style={styles.sectionTitle}>Seus Posts</Text>
             {posts.map((post) => (
               <View key={post.id} style={{ marginBottom: 14, borderRadius: 10 }}>
                 <PostListItem post={post} />
-                <TouchableOpacity
-                  onPress={() => deletePost(post.id)}
-                  style={styles.deletePostButton}
-                >
+                <TouchableOpacity onPress={() => deletePost(post.id)} style={styles.deletePostButton}>
                   <Text style={styles.deleteButtonText}>Excluir</Text>
                 </TouchableOpacity>
               </View>
@@ -297,42 +245,30 @@ export default function Perfil() {
 
             <Text style={styles.sectionTitle}>Suas Caronas</Text>
             {rides.map((item) => {
-              const pricePerPassenger = item.original_seats && item.original_seats > 0
-                ? (item.price / item.original_seats)
-                : item.price;
-
+              const pricePerPassenger = item.original_seats ? item.price / item.original_seats : item.price;
               return (
                 <View key={item.id} style={styles.containerCarona}>
                   <Text style={styles.titleCarona}>{item.origin} ➜ {item.destination}</Text>
                   <Text style={styles.details}>Data: {new Date(item.ride_date).toLocaleDateString('pt-BR')}</Text>
                   <Text style={styles.details}>Hora: {item.ride_time.slice(0, 5)}</Text>
                   <Text style={styles.details}>Vagas: {item.seats}</Text>
-                  <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
                   <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
                   {item.passengers && item.passengers.length > 0 && (
                     <>
                       <Text style={[styles.details, { marginTop: 8, fontWeight: 'bold' }]}>Passageiros:</Text>
                       {item.passengers.map((p, index) => (
                         <View key={p.user.id ?? index} style={styles.passengerContainer}>
-                          {p.user.image && (
-                            <Image source={{ uri: p.user.image }} style={styles.passengerImage} />
-                          )}
+                          {p.user.image && <Image source={{ uri: p.user.image }} style={styles.passengerImage} />}
                           <Text style={styles.details}>{p.user.name}</Text>
                         </View>
                       ))}
                     </>
                   )}
                   <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                      onPress={() => openWaze(item.destination)}
-                      style={[styles.actionButton, { backgroundColor: '#33cc33' }]}
-                    >
+                    <TouchableOpacity onPress={() => openWaze(item.destination)} style={[styles.actionButton, { backgroundColor: '#33cc33' }]}>
                       <Text style={styles.actionButtonText}>Abrir no Waze</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => deleteRide(item.id)}
-                      style={[styles.actionButton, { backgroundColor: '#ff5252' }]}
-                    >
+                    <TouchableOpacity onPress={() => deleteRide(item.id)} style={[styles.actionButton, { backgroundColor: '#ff5252' }]}>
                       <Text style={styles.actionButtonText}>Excluir</Text>
                     </TouchableOpacity>
                   </View>
@@ -345,25 +281,14 @@ export default function Perfil() {
               <Text style={styles.emptyMessage}>Nenhuma carona reservada.</Text>
             ) : (
               reservedRides.map((item: Ride) => {
-                const pricePerPassenger = item.original_seats && item.original_seats > 0
-                  ? (item.price / item.original_seats)
-                  : item.price;
-
+                const pricePerPassenger = item.original_seats ? item.price / item.original_seats : item.price;
                 return (
                   <View key={item.id} style={styles.containerCarona}>
                     <Text style={styles.titleCarona}>{item.origin} ➜ {item.destination}</Text>
                     <Text style={styles.details}>Motorista: {item.user?.name ?? 'Desconhecido'}</Text>
-                    <Text style={styles.details}>Modelo do carro: {item.car_model || 'Não informado'}</Text>
-                    <Text style={styles.details}>Placa: {item.car_plate || 'Não informada'}</Text>
                     <Text style={styles.details}>Data: {new Date(item.ride_date).toLocaleDateString('pt-BR')}</Text>
-                    <Text style={styles.details}>Hora: {item.ride_time.slice(0, 5)}</Text>
-                    <Text style={styles.details}>Valor total: R$ {item.price.toFixed(2)}</Text>
                     <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
-
-                    <TouchableOpacity
-                      onPress={() => cancelRideReservation(item.id)}
-                      style={styles.cancelButton}
-                    >
+                    <TouchableOpacity onPress={() => cancelRideReservation(item.id)} style={styles.cancelButton}>
                       <Text style={styles.deleteButtonText}>Cancelar reserva</Text>
                     </TouchableOpacity>
                   </View>
@@ -385,11 +310,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#C2DCF2',
     paddingHorizontal: 16,
   },
+  avatarContainer: {
+    marginBottom: 8,
+  },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 8,
+  },
+  editIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 6,
+    borderRadius: 15,
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 50,
   },
   name: {
     fontSize: 20,
