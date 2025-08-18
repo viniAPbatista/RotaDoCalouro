@@ -3,7 +3,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Post } from "../types";
 import { useRouter } from "expo-router";
-// NOVO: Importamos o useEffect
 import { useState, useEffect } from "react";
 import { supabase } from "@/src/lib/supabase";
 import { useUser } from "@clerk/clerk-expo";
@@ -18,26 +17,23 @@ export default function PostListItem({ post }: PostListItemProps) {
     const [likeCount, setLikeCount] = useState(post.likes || 0);
 
     const router = useRouter();
-    const { user } = useUser();
+    // NOVO: Renomeamos 'user' para 'currentUser' para evitar conflito com 'post.user'
+    const { user: currentUser } = useUser();
 
-    // AQUI ESTÁ A SOLUÇÃO SIMPLES:
-    // Este useEffect "escuta" por mudanças nas propriedades do post.
-    // Se a tela de Feed ou Perfil buscar dados novos, este código
-    // garante que o estado interno do card seja atualizado.
     useEffect(() => {
         setLiked(post.liked_by_me);
         setLikeCount(post.likes || 0);
     }, [post.liked_by_me, post.likes]);
 
     const toggleLike = async () => {
-        if (!user) return;
+        if (!currentUser) return;
 
         if (liked) {
             const { error } = await supabase
                 .from("likes")
                 .delete()
                 .eq("post_id", post.id)
-                .eq("user_id", user.id);
+                .eq("user_id", currentUser.id);
 
             if (!error) {
                 setLiked(false);
@@ -46,7 +42,7 @@ export default function PostListItem({ post }: PostListItemProps) {
         } else {
             const { error } = await supabase.from("likes").insert({
                 post_id: post.id,
-                user_id: user.id,
+                user_id: currentUser.id,
             });
 
             if (!error) {
@@ -60,11 +56,18 @@ export default function PostListItem({ post }: PostListItemProps) {
         router.push({ pathname: '/comments', params: { postId: post.id } })
     }
 
+    // LÓGICA PRINCIPAL DA SOLUÇÃO SIMPLES
+    // Verificamos se o post pertence ao usuário logado.
+    const isMyPost = post.user.id === currentUser?.id;
+    // Decidimos qual URL de imagem usar.
+    const userImageUri = isMyPost ? currentUser.imageUrl : post.user.image;
+
     return (
         <View style={styles.postContainer}>
             <View style={styles.headerPost}>
                 <Image
-                    source={post.user.image ? { uri: post.user.image } : require('../../assets/images/logo_rota_do_calouro-removebg-preview.png')}
+                    // Usamos a variável que decidimos acima
+                    source={userImageUri ? { uri: userImageUri } : require('../../assets/images/logo_rota_do_calouro-removebg-preview.png')}
                     style={styles.userImage}
                 />
                 <Text style={styles.userName}>{post.user.name}</Text>
