@@ -287,6 +287,11 @@ export default function Perfil() {
                     <Text style={styles.titleCarona}>{item.origin} ➜ {item.destination}</Text>
                     <Text style={styles.details}>Motorista: {item.user?.name ?? 'Desconhecido'}</Text>
                     <Text style={styles.details}>Data: {new Date(item.ride_date).toLocaleDateString('pt-BR')}</Text>
+                    {/* MODIFICAÇÃO AQUI */}
+                    <Text style={styles.details}>Hora: {item.ride_time ? item.ride_time.slice(0, 5) : 'Não informado'}</Text>
+                    <Text style={styles.details}>Modelo do carro: {item.car_model ?? 'Não informado'}</Text>
+                    <Text style={styles.details}>Placa do carro: {item.car_plate ?? 'Não informada'}</Text>
+                    {/* FIM DA MODIFICAÇÃO */}
                     <Text style={styles.details}>Por pessoa: R$ {pricePerPassenger.toFixed(2)}</Text>
                     <TouchableOpacity onPress={() => cancelRideReservation(item.id)} style={styles.cancelButton}>
                       <Text style={styles.deleteButtonText}>Cancelar reserva</Text>
