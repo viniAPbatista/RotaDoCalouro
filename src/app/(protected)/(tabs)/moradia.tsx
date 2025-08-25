@@ -1,20 +1,22 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, FlatList, Image, ActivityIndicator, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { StyleSheet, FlatList, Image, ActivityIndicator, TouchableOpacity, Alert, RefreshControl, Modal, Dimensions } from 'react-native';
 import { Text, View } from '@/src/components/Themed';
 import { Moradia } from '@/src/types';
 import { useRouter, useFocusEffect } from "expo-router";
 import { supabase } from '@/src/lib/supabase';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-const MoradiaItem = ({ item }: { item: Moradia }) => (
+const { width } = Dimensions.get('window');
+
+const MoradiaItem = ({ item, onImagePress }: { item: Moradia, onImagePress: (fotos: string[]) => void }) => (
   <View style={styles.moradiaContainer}>
-    {/* AQUI ESTÁ A MUDANÇA: Exibe a primeira foto do array 'fotos' */}
-    {item.fotos && item.fotos.length > 0 ? (
-      <Image source={{ uri: item.fotos[0] }} style={styles.moradiaImagem} />
-    ) : (
-      // Se não houver foto, exibe uma imagem padrão
-      <Image source={{ uri: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }} style={styles.moradiaImagem} />
-    )}
+    <TouchableOpacity style={styles.imageContainer} onPress={() => onImagePress(item.fotos || [])}>
+      {item.fotos && item.fotos.length > 0 ? (
+        <Image source={{ uri: item.fotos[0] }} style={styles.moradiaImagem} />
+      ) : (
+        <Image source={{ uri: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=600' }} style={styles.moradiaImagem} />
+      )}
+    </TouchableOpacity>
     
     <View style={styles.moradiaInfo}>
       <View>
@@ -28,14 +30,12 @@ const MoradiaItem = ({ item }: { item: Moradia }) => (
         <Text style={styles.specsText}>
           {`${item.quartos} Quarto(s) • ${item.banheiros} Banheiro(s) • ${item.vagas} Vaga(s)`}
         </Text>
-
         {item.endereco && (
           <View style={styles.iconDetailRow}>
             <Ionicons name="location-outline" size={16} color="#666" style={styles.icon} />
             <Text style={styles.iconDetailText} numberOfLines={1}>{item.endereco}</Text>
           </View>
         )}
-
         {item.telefone && (
           <View style={styles.iconDetailRow}>
             <Ionicons name="call-outline" size={16} color="#666" style={styles.icon} />
@@ -63,6 +63,23 @@ export default function Moradias() {
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
+  const [isCarouselVisible, setIsCarouselVisible] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+
+  const openCarousel = (photos: string[]) => {
+    if (photos && photos.length > 0) {
+      setSelectedPhotos(photos);
+      setIsCarouselVisible(true);
+    } else {
+      Alert.alert("Sem fotos", "Este anúncio não possui fotos para exibir.");
+    }
+  };
+
+  const closeCarousel = () => {
+    setIsCarouselVisible(false);
+    setSelectedPhotos([]);
+  };
+
   function handleAcessCriarMoradia() {
     router.push('/criarMoradia');
   }
@@ -73,12 +90,8 @@ export default function Moradias() {
         .from('moradias')
         .select('*, users(name)')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-
-      if (data) {
-        setMoradias(data as any);
-      }
+      if (data) setMoradias(data as any);
     } catch (error: any) {
       console.error("Erro ao buscar moradias:", error);
       Alert.alert('Erro', `Não foi possível carregar a lista de moradias: ${error.message}`);
@@ -100,7 +113,6 @@ export default function Moradias() {
     fetchMoradias();
   }, []);
 
-
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
@@ -113,14 +125,36 @@ export default function Moradias() {
     <View style={styles.container}>
       <FlatList
         data={moradias}
-        renderItem={({ item }) => <MoradiaItem item={item} />}
+        renderItem={({ item }) => <MoradiaItem item={item} onImagePress={openCarousel} />}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContentContainer}
         ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma moradia cadastrada ainda.</Text>}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       />
+
+      <Modal
+        visible={isCarouselVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closeCarousel}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity style={styles.closeButton} onPress={closeCarousel}>
+            <Ionicons name="close" size={32} color="white" />
+          </TouchableOpacity>
+          <FlatList
+            data={selectedPhotos}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item, index) => `${item}-${index}`}
+            renderItem={({ item }) => (
+              <Image source={{ uri: item }} style={styles.carouselImage} />
+            )}
+          />
+        </View>
+      </Modal>
+
       <TouchableOpacity style={styles.ButtonAdicionarMoradia} onPress={handleAcessCriarMoradia}>
         <Text style={styles.TextAdicionarMoradia}>+</Text>
       </TouchableOpacity>
@@ -150,7 +184,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
   },
-moradiaContainer: {
+  moradiaContainer: {
     backgroundColor: 'white',
     borderRadius: 8,
     marginTop: 15,
@@ -162,10 +196,14 @@ moradiaContainer: {
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  moradiaImagem: {
+  imageContainer: {
     width: 110,
-    height: 'auto',
-    backgroundColor: '#e0e0e0'
+  },
+  // CORREÇÃO FINAL APLICADA AQUI:
+  moradiaImagem: {
+    width: '100%',
+    flex: 1, // Usa flex: 1 para preencher o espaço vertical sem causar conflito
+    backgroundColor: '#e0e0e0',
   },
   moradiaInfo: {
     padding: 12,
@@ -185,49 +223,40 @@ moradiaContainer: {
   detailsContainer: {
     flex: 1, 
     gap: 8, 
-},
-specsText: {
+  },
+  specsText: {
     fontSize: 13,
     color: '#333',
     fontWeight: '500',
-},
-iconDetailRow: {
+  },
+  iconDetailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-},
-icon: {
+  },
+  icon: {
     marginRight: 6,
-},
-iconDetailText: {
+  },
+  iconDetailText: {
     fontSize: 14,
     color: '#333',
     flex: 1, 
-},
-footerRow: {
+  },
+  footerRow: {
     flexDirection: 'row',
     alignItems: 'flex-end', 
     marginTop: 12,
-},
-moradiaProprietario: {
+  },
+  moradiaProprietario: {
     fontSize: 12,
     fontWeight: '500',
     color: '#272874ff',
     flexShrink: 1, 
-},
-moradiaValor: {
+  },
+  moradiaValor: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#32CD32',
     textAlign: 'right',
-},
-  detailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  detailText: {
-    fontSize: 13,
-    color: '#333',
   },
   ButtonAdicionarMoradia: {
     position: 'absolute',
@@ -245,5 +274,22 @@ moradiaValor: {
     color: 'white',
     fontSize: 35,
     lineHeight: 40,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 2,
+  },
+  carouselImage: {
+    width: width,
+    height: width,
+    resizeMode: 'contain',
   },
 });
