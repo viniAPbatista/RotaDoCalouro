@@ -5,8 +5,11 @@ import { useAuth, useUser } from '@clerk/clerk-expo';
 import { supabase } from '../../../lib/supabase';
 import { Ride } from '@/src/types';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSyncClerkUser } from "../../../hooks/useSyncClerkUser";
 
 export default function TabOneScreen() {
+  useSyncClerkUser();
+  
   const { userId } = useAuth();
   const { user } = useUser();
   const [rides, setRides] = useState<Ride[]>([]);
@@ -147,7 +150,7 @@ export default function TabOneScreen() {
       <View style={styles.containerCarona}>
         <Text style={styles.title}>{item.origin} ➜ {item.destination}</Text>
         <Text style={styles.details}>
-          Motorista: {item.users?.name || 'Desconhecido'}
+          Motorista: {item.user?.name || 'Desconhecido'}
         </Text>
         <Text style={styles.details}>Data: {new Date(item.ride_date).toLocaleDateString('pt-BR')}</Text>
         <Text style={styles.details}>Hora: {item.ride_time.slice(0, 5)}</Text>
